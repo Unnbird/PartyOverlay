@@ -120,8 +120,8 @@ try {
 
     $suffix = if ($Configuration -eq "Release") { "" } else { "-$Configuration" }
     $archive = Join-Path $workspace "out\PartyOverlay-$version$suffix.zip"
-    if (Test-Path $archive) { Remove-Item $archive }
-    Compress-Archive -Path $pkg -DestinationPath $archive
+    if (Test-Path $archive) { Remove-Item $archive -Force }
+    Compress-Archive -Path "$pkg\*" -DestinationPath $archive -Force
 
     echo "==> Done: $archive"
 } finally {

@@ -89,11 +89,42 @@ namespace PartyOverlayPlugin
 
                 registry.StartEventSource(new PartyOverlayEventSource(container));
                 RegisterPresets(registry);
+                CheckForUpdates(container);
                 isInitialized = true;
             }
             catch (Exception ex)
             {
                 ActGlobals.oFormActMain?.WriteExceptionLog(ex, "PartyOverlayInitError");
+            }
+        }
+
+        private async void CheckForUpdates(RainbowMage.OverlayPlugin.TinyIoCContainer container)
+        {
+            try
+            {
+                string pluginDir = !string.IsNullOrEmpty(PluginPath) 
+                    ? Path.GetDirectoryName(PluginPath) 
+                    : Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+                if (string.IsNullOrEmpty(pluginDir)) return;
+
+                var options = new RainbowMage.OverlayPlugin.Updater.UpdaterOptions
+                {
+                    project = "PartyOverlay",
+                    pluginDirectory = pluginDir,
+                    lastCheck = DateTime.MinValue,
+                    currentVersion = Assembly.GetExecutingAssembly().GetName().Version,
+                    checkInterval = TimeSpan.FromHours(1),
+                    repo = "Unnbird/PartyOverlay",
+                    downloadUrl = "https://github.com/{REPO}/releases/download/v{VERSION}/PartyOverlay-{VERSION}.zip",
+                    strippedDirs = 1,
+                };
+
+                await System.Threading.Tasks.Task.Run(() => RainbowMage.OverlayPlugin.Updater.Updater.RunAutoUpdater(options, false));
+            }
+            catch (Exception ex)
+            {
+                ActGlobals.oFormActMain?.WriteExceptionLog(ex, "PartyOverlayCheckUpdateError");
             }
         }
 
