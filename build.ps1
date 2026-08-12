@@ -124,7 +124,26 @@ try {
     $suffix = if ($Configuration -eq "Release") { "" } else { "-$Configuration" }
     $archive = Join-Path $workspace "out\PartyOverlay-$version$suffix.zip"
     if (Test-Path $archive) { Remove-Item $archive -Force }
-    Compress-Archive -Path $pkg -DestinationPath $archive -Force
+    # Compress-Archive uses backslash separators on Windows, but OverlayPlugin's
+    # Installer.Extract splits entry keys on '/' only.  Use System.IO.Compression
+    # directly so every entry uses forward slashes.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $zipStream = [System.IO.File]::Create($archive)
+    $zip = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create)
+
+    $pkgParent = Split-Path -Parent $pkg   # = .../package
+    Get-ChildItem -Recurse -File $pkg | ForEach-Object {
+        # Produce "PartyOverlay/PartyOverlayPlugin.dll" style entries
+        $rel = $_.FullName.Substring($pkgParent.Length + 1).Replace('\', '/')
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $zip, $_.FullName, $rel,
+            [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+
+    $zip.Dispose()
+    $zipStream.Dispose()
 
     echo "==> Done: $archive"
 }

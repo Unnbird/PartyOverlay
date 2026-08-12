@@ -108,12 +108,21 @@ namespace PartyOverlayPlugin
 
                 if (string.IsNullOrEmpty(pluginDir)) return;
 
+                var currentVer = Assembly.GetExecutingAssembly().GetName().Version;
+
+                // Diagnostic logging
+                ActGlobals.oFormActMain?.WriteInfoLog(
+                    $"[PartyOverlay] Update check: pluginDir={pluginDir}, " +
+                    $"PluginPath={PluginPath}, " +
+                    $"currentVersion={currentVer}, " +
+                    $"AssemblyLocation={Assembly.GetExecutingAssembly().Location}");
+
                 var options = new RainbowMage.OverlayPlugin.Updater.UpdaterOptions
                 {
                     project = "PartyOverlay",
                     pluginDirectory = pluginDir,
                     lastCheck = DateTime.MinValue,
-                    currentVersion = Assembly.GetExecutingAssembly().GetName().Version,
+                    currentVersion = currentVer,
                     checkInterval = TimeSpan.FromHours(1),
                     repo = "Unnbird/PartyOverlay",
                     downloadUrl = "https://github.com/{REPO}/releases/download/v{VERSION}/PartyOverlay-{VERSION}.zip",
