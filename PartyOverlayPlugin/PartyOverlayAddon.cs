@@ -117,7 +117,7 @@ namespace PartyOverlayPlugin
                     checkInterval = TimeSpan.FromHours(1),
                     repo = "Unnbird/PartyOverlay",
                     downloadUrl = "https://github.com/{REPO}/releases/download/v{VERSION}/PartyOverlay-{VERSION}.zip",
-                    strippedDirs = 0,
+                    strippedDirs = 1,
                 };
 
                 await System.Threading.Tasks.Task.Run(() => RainbowMage.OverlayPlugin.Updater.Updater.RunAutoUpdater(options, false));
