@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 using Advanced_Combat_Tracker;
 using RainbowMage.OverlayPlugin;
@@ -6,6 +10,16 @@ using RainbowMage.OverlayPlugin.MemoryProcessors.Party;
 
 namespace PartyOverlayPlugin
 {
+    public class PartyOverlayPreset : IOverlayPreset
+    {
+        public string Name { get; set; }
+        public string Type { get; set; } = "MiniParse";
+        public string Url { get; set; }
+        public int[] Size { get; set; } = new int[] { 600, 400 };
+        public bool Locked { get; set; } = false;
+        public List<string> Supports { get; set; } = new List<string> { "modern" };
+    }
+
     public class PartyOverlayAddon : IActPluginV1, IOverlayAddonV2
     {
         public static string PluginPath { get; private set; } = string.Empty;
@@ -74,11 +88,67 @@ namespace PartyOverlayPlugin
                 if (registry == null) return;
 
                 registry.StartEventSource(new PartyOverlayEventSource(container));
+                RegisterPresets(registry);
                 isInitialized = true;
             }
             catch (Exception ex)
             {
                 ActGlobals.oFormActMain?.WriteExceptionLog(ex, "PartyOverlayInitError");
+            }
+        }
+
+        private void RegisterPresets(Registry registry)
+        {
+            try
+            {
+                string pluginDir = !string.IsNullOrEmpty(PluginPath) 
+                    ? Path.GetDirectoryName(PluginPath) 
+                    : Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+                if (string.IsNullOrEmpty(pluginDir)) return;
+
+                string uiDir = FindUiDirectory(pluginDir);
+                if (string.IsNullOrEmpty(uiDir)) return;
+
+                RegisterPreset(registry, "PartyOverlay", Path.Combine(uiDir, "index.html"), new int[] { 900, 600 });
+            }
+            catch (Exception ex)
+            {
+                ActGlobals.oFormActMain?.WriteExceptionLog(ex, "PartyOverlayRegisterPresetsError");
+            }
+        }
+
+        private static string FindUiDirectory(string baseDir)
+        {
+            string candidate = Path.Combine(baseDir, "ui");
+            if (Directory.Exists(candidate)) return candidate;
+
+            candidate = Path.GetFullPath(Path.Combine(baseDir, "..", "ui"));
+            if (Directory.Exists(candidate)) return candidate;
+
+            candidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "ui"));
+            if (Directory.Exists(candidate)) return candidate;
+
+            return null;
+        }
+
+        private static void RegisterPreset(Registry registry, string presetName, string filePath, int[] defaultSize)
+        {
+            if (!File.Exists(filePath)) return;
+
+            string fileUrl = new Uri(filePath).AbsoluteUri;
+
+            if (!registry.OverlayPresets.Any(p => p.Name == presetName))
+            {
+                registry.RegisterOverlayPreset2(new PartyOverlayPreset
+                {
+                    Name = presetName,
+                    Type = "MiniParse",
+                    Url = fileUrl,
+                    Size = defaultSize,
+                    Locked = false,
+                    Supports = new List<string> { "modern" }
+                });
             }
         }
     }
