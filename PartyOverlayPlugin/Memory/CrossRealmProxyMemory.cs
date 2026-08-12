@@ -72,8 +72,8 @@ namespace PartyOverlayPlugin.Memory
         // Locating is only attempted while we're actually in a party. A local (non cross-world) party
         // leaves the proxy empty and therefore unidentifiable, so failed attempts back off instead of
         // repeating every few seconds for a whole raid night.
-        private static readonly TimeSpan MinLocateInterval = TimeSpan.FromSeconds(5);
-        private static readonly TimeSpan MaxLocateInterval = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan MinLocateInterval = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan MaxLocateInterval = TimeSpan.FromSeconds(2);
         private const long MaxImageScanBytes = 64L * 1024 * 1024;
         private const int ScanChunkSize = 0x100000;
         private const int MaxCandidateHits = 64;
@@ -134,6 +134,7 @@ namespace PartyOverlayPlugin.Memory
         /// </summary>
         public void NotifyPartyChanged()
         {
+            forceLocate = true;
             locateInterval = MinLocateInterval;
             lastLocateAttempt = DateTime.MinValue;
         }

@@ -18,6 +18,7 @@ namespace PartyOverlayPlugin
         private CrossRealmPartyMemory partyMemory;
         private string lastPartySignature = string.Empty;
         private string statusFilePath;
+        private readonly object updateLock = new object();
 
         public PartyOverlayEventSource(TinyIoCContainer container) : base(container)
         {
@@ -66,6 +67,17 @@ namespace PartyOverlayPlugin
             try
             {
                 partyMemory = new CrossRealmPartyMemory(container);
+                partyMemory.OnPartyStateChanged += () =>
+                {
+                    try
+                    {
+                        Update();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log(LogLevel.Debug, $"Immediate update error: {ex.Message}");
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -88,32 +100,35 @@ namespace PartyOverlayPlugin
         {
             if (partyMemory == null) return;
 
-            var state = GetState();
-            var signature = BuildSignature(state);
-            if (signature == lastPartySignature) return;
-            lastPartySignature = signature;
-
-            WriteStatusLine(state);
-
-            DispatchAndCacheEvent(new JObject
+            lock (updateLock)
             {
-                ["type"] = PartyUpdateEvent,
-                ["detail"] = JObject.FromObject(state)
-            });
+                var state = GetState();
+                var signature = BuildSignature(state);
+                if (signature == lastPartySignature) return;
+                lastPartySignature = signature;
 
-            var crossRealmEvent = new JObject
-            {
-                ["type"] = CrossRealmEvent,
-                ["detail"] = JObject.FromObject(state)
-            };
+                WriteStatusLine(state);
 
-            // Keep the cached copy in sync even when the party stopped being cross-world, otherwise
-            // a later subscriber would be handed a stale cross-realm party on connect.
-            eventCache[CrossRealmEvent] = crossRealmEvent;
+                DispatchAndCacheEvent(new JObject
+                {
+                    ["type"] = PartyUpdateEvent,
+                    ["detail"] = JObject.FromObject(state)
+                });
 
-            if (state.IsCrossRealm)
-            {
-                DispatchEvent(crossRealmEvent);
+                var crossRealmEvent = new JObject
+                {
+                    ["type"] = CrossRealmEvent,
+                    ["detail"] = JObject.FromObject(state)
+                };
+
+                // Keep the cached copy in sync even when the party stopped being cross-world, otherwise
+                // a later subscriber would be handed a stale cross-realm party on connect.
+                eventCache[CrossRealmEvent] = crossRealmEvent;
+
+                if (state.IsCrossRealm)
+                {
+                    DispatchEvent(crossRealmEvent);
+                }
             }
         }
 

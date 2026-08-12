@@ -9,7 +9,6 @@
   'use strict';
 
   var CACHE_PREFIX = 'partyoverlay.roster.';
-  var HANDSHAKE_TIMEOUT_MS = 15000;
 
   var el = {
     root: document.getElementById('app'),
@@ -25,7 +24,6 @@
 
   var state = {
     connected: false,
-    preview: false,
     collapsed: false
   };
 
@@ -119,59 +117,25 @@
 
   function initOverlayEvents() {
     if (!window.addOverlayListener || !window.callOverlayHandler) {
-      enablePreview('common.js 未載入');
       return;
     }
 
     window.addOverlayListener('onPartyOverlayUpdate', function (e) {
       onConnected();
-      if (!state.preview) renderParty(e && e.detail ? e.detail : e);
+      renderParty(e && e.detail ? e.detail : e);
     });
 
     window.addOverlayListener('onCrossRealmPartyChanged', function (e) {
       onConnected();
-      if (!state.preview) renderParty(e && e.detail ? e.detail : e);
+      renderParty(e && e.detail ? e.detail : e);
     });
 
     window.startOverlayEvents();
 
-    var settled = false;
-    var timer = setTimeout(function () {
-      if (settled || state.connected) return;
-      settled = true;
-      enablePreview('未偵測到 OverlayPlugin');
-    }, HANDSHAKE_TIMEOUT_MS);
-
     window.callOverlayHandler({ call: 'getPartyOverlayData' }).then(function (data) {
-      if (settled && state.preview) return;
-      settled = true;
-      clearTimeout(timer);
       onConnected();
       renderParty(data);
     }).catch(function () { /* fallback event push */ });
-  }
-
-  /**
-   * Browser preview: fixed cross-realm roster to exercise the card layout.
-   */
-  function enablePreview(reason) {
-    state.preview = true;
-    el.statusIndicator.classList.add('is-preview');
-    el.statusIndicator.title = reason || '預覽模式';
-    renderParty({
-      partyType: 'CrossRealmParty',
-      isCrossRealm: true,
-      members: [
-        { name: 'Alpha Leader', jobName: 'PLD', jobRole: 'Tank', level: 100, homeWorldName: 'Asura', isLeader: true, isCrossRealm: false },
-        { name: 'Iron Shield', jobName: 'GNB', jobRole: 'Tank', level: 100, homeWorldName: 'Titan', isLeader: false, isCrossRealm: true },
-        { name: 'Light Healer', jobName: 'WHM', jobRole: 'Healer', level: 100, homeWorldName: 'Anima', isLeader: false, isCrossRealm: true },
-        { name: 'Sage Master', jobName: 'SGE', jobRole: 'Healer', level: 100, homeWorldName: 'Asura', isLeader: false, isCrossRealm: false },
-        { name: 'Shadow Reaper', jobName: 'RPR', jobRole: 'DPS', level: 100, homeWorldName: 'Belias', isLeader: false, isCrossRealm: true },
-        { name: 'Viper Blade', jobName: 'VPR', jobRole: 'DPS', level: 100, homeWorldName: 'Asura', isLeader: false, isCrossRealm: false },
-        { name: 'Pictomancer', jobName: 'PCT', jobRole: 'DPS', level: 100, homeWorldName: 'Chocobo', isLeader: false, isCrossRealm: true },
-        { name: 'Dancer Star', jobName: 'DNC', jobRole: 'DPS', level: 100, homeWorldName: 'Asura', isLeader: false, isCrossRealm: false }
-      ]
-    });
   }
 
   el.collapseBtn.addEventListener('click', function () { setCollapsed(!state.collapsed); });

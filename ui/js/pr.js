@@ -25,7 +25,6 @@
   var CACHE_PREFIX = 'partyoverlay.pr.';
   var ENCOUNTER_TTL_MS = 24 * 60 * 60 * 1000;
   var USER_TTL_MS = 30 * 60 * 1000;
-  var HANDSHAKE_TIMEOUT_MS = 15000;
 
   var SHORT_LABELS = {
     savage_m1s: 'M1', savage_m2s: 'M2', savage_m3s: 'M3', savage_m4s: 'M4',
@@ -122,7 +121,6 @@
 
   var state = {
     connected: false,
-    preview: false,
     collapsed: false,
     viewMode: 'party',
     partyLayout: 'encounter',
@@ -379,7 +377,6 @@
   function renderMeta() {
     var bits = [];
     if (state.dataUpdatedAt) bits.push('排行資料 ' + formatDate(state.dataUpdatedAt));
-    if (state.preview) bits.push('<span class="meta-warn">預覽模式</span>');
     if (state.encountersError) bits.push('<span class="meta-warn">副本清單讀取失敗</span>');
     var errored = Object.keys(state.prByName).filter(function (n) { return state.prByName[n].status === 'error'; });
     if (errored.length) bits.push('<span class="meta-warn">' + errored.length + ' 人讀取失敗</span>');
@@ -1024,51 +1021,20 @@
 
   function initOverlayEvents() {
     if (!window.addOverlayListener || !window.callOverlayHandler) {
-      enablePreview('common.js 未載入');
       return;
     }
 
     window.addOverlayListener('onPartyOverlayUpdate', function (e) {
       onConnected();
-      if (!state.preview) onPartyState(e && e.detail ? e.detail : e);
+      onPartyState(e && e.detail ? e.detail : e);
     });
 
     window.startOverlayEvents();
 
-    var settled = false;
-    var timer = setTimeout(function () {
-      if (settled || state.connected) return;
-      settled = true;
-      enablePreview('未偵測到 OverlayPlugin');
-    }, HANDSHAKE_TIMEOUT_MS);
-
     window.callOverlayHandler({ call: 'getPartyOverlayData' }).then(function (data) {
-      if (settled && state.preview) return;
-      settled = true;
-      clearTimeout(timer);
       onConnected();
       onPartyState(data);
     }).catch(function () { /* fallback event push */ });
-  }
-
-  /**
-   * Browser preview: fixed 8-person roster to exercise party, stat, and single view.
-   */
-  function enablePreview(reason) {
-    state.preview = true;
-    el.statusDot.classList.add('is-preview');
-    el.statusDot.title = reason || '預覽模式';
-    state.members = [
-      { name: '加加財富鳥', world: '利維坦', jobName: 'RDM', jobRole: 'DPS', groupIndex: 0 },
-      { name: '我不是洗ㄅㄚ', world: '利維坦', jobName: 'AST', jobRole: 'Healer', groupIndex: 0 },
-      { name: 'Alpha Shield', world: 'Asura', jobName: 'PLD', jobRole: 'Tank', groupIndex: 0 },
-      { name: 'Titan Defender', world: 'Titan', jobName: 'GNB', jobRole: 'Tank', groupIndex: 0 },
-      { name: 'Sage Master', world: 'Anima', jobName: 'SGE', jobRole: 'Healer', groupIndex: 0 },
-      { name: 'Shadow Reaper', world: 'Belias', jobName: 'RPR', jobRole: 'DPS', groupIndex: 0 },
-      { name: 'Viper Blade', world: 'Chocobo', jobName: 'VPR', jobRole: 'DPS', groupIndex: 0 },
-      { name: 'Star Dancer', world: 'Pandaemonium', jobName: 'DNC', jobRole: 'DPS', groupIndex: 0 }
-    ];
-    loadAll(false);
   }
 
   // ---------------------------------------------------------------- boot

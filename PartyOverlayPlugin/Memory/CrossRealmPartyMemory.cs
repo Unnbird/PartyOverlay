@@ -39,6 +39,8 @@ namespace PartyOverlayPlugin.Memory
         private bool processChangeRegistered;
         private int lastKnownPartySize;
 
+        public event Action OnPartyStateChanged;
+
         public string LastDiagnosticStatus { get; private set; } = "尚未初始化 (not initialized)";
 
         public CrossRealmPartyMemory(TinyIoCContainer container)
@@ -121,6 +123,13 @@ namespace PartyOverlayPlugin.Memory
 
             string groupManagerStatus;
             var lists = TryReadPartyLists(out groupManagerStatus);
+
+            if (lists != null && (int)lists.memberCount != lastKnownPartySize)
+            {
+                lastKnownPartySize = (int)lists.memberCount;
+                crossRealmProxy?.NotifyPartyChanged();
+                OnPartyStateChanged?.Invoke();
+            }
 
             var self = TryGetSelfCombatant();
             uint selfId = self?.ID ?? SafePlayerId();
@@ -449,6 +458,7 @@ namespace PartyOverlayPlugin.Memory
             // The cross-realm proxy may have just become populated - look again without waiting for
             // the accumulated back off.
             crossRealmProxy?.NotifyPartyChanged();
+            OnPartyStateChanged?.Invoke();
         }
 
         private PartyListsStruct TryReadPartyLists(out string status)
