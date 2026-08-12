@@ -1,0 +1,121 @@
+name: Build artifact
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '.github/workflows/build-artifact.yml'
+      - '**/*.cs'
+      - 'ui/**'
+      - 'PartyOverlayPlugin/PartyOverlayPlugin.csproj'
+      - 'Directory.Build.props'
+      - 'build.bat'
+      - 'build.ps1'
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '.github/workflows/build-artifact.yml'
+      - '**/*.cs'
+      - 'ui/**'
+      - 'PartyOverlayPlugin/PartyOverlayPlugin.csproj'
+      - 'Directory.Build.props'
+      - 'build.bat'
+      - 'build.ps1'
+  workflow_dispatch:
+    inputs:
+      overlayplugin_ref:
+        description: 'OverlayPlugin git ref to build against (blank = pinned default)'
+        required: false
+        default: ''
+
+env:
+  OVERLAYPLUGIN_REPO: OverlayPlugin/OverlayPlugin
+  # Keep in sync with $DEFAULT_OVERLAYPLUGIN_REF in build.ps1.
+  OVERLAYPLUGIN_DEFAULT_REF: v0.19.104
+
+jobs:
+  msbuild:
+    runs-on: windows-latest
+
+    steps:
+      # PartyOverlayPlugin.csproj references ..\OverlayPlugin\* and writes to ..\out\, so
+      # the workspace has to mirror the local dev layout:
+      #   <workspace>/PartyOverlay   <- this repository
+      #   <workspace>/OverlayPlugin  <- OverlayPlugin source
+      #   <workspace>/out            <- build output
+      - uses: actions/checkout@v4
+        with:
+          path: PartyOverlay
+
+      - name: Resolve OverlayPlugin ref
+        shell: bash
+        run: |
+          ref="${{ github.event.inputs.overlayplugin_ref }}"
+          if [ -z "$ref" ]; then ref="${{ env.OVERLAYPLUGIN_DEFAULT_REF }}"; fi
+          echo "Building against OverlayPlugin $ref"
+          echo "OVERLAYPLUGIN_REF=$ref" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.OVERLAYPLUGIN_REPO }}
+          ref: ${{ env.OVERLAYPLUGIN_REF }}
+          path: OverlayPlugin
+
+      - name: Set artifact name
+        shell: bash
+        run: |
+          sha=$(echo "${{ github.sha }}" | cut -c 1-8)
+          echo "artifact_sha=$sha" >> $GITHUB_ENV
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # DEPS.cache travels with the archives: fetch_deps.ps1 compares it against DEPS.json
+      # and only re-downloads when they disagree.
+      - name: Check dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./OverlayPlugin/Thirdparty
+            ./OverlayPlugin/OverlayPlugin.Core/Thirdparty
+            ./OverlayPlugin/DEPS.cache
+          key: ${{ runner.os }}-overlayplugin-${{ env.OVERLAYPLUGIN_REF }}-${{ hashFiles('./OverlayPlugin/tools/fetch_deps.ps1', './OverlayPlugin/DEPS.json', './OverlayPlugin/tools/StripFFXIVClientStructs/StripFFXIVClientStructs/StripFFXIVClientStructs.cs') }}
+          restore-keys: |
+            ${{ runner.os }}-overlayplugin-${{ env.OVERLAYPLUGIN_REF }}-
+            ${{ runner.os }}-overlayplugin-
+
+      - name: Set up msbuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Add Custom Problem Matcher
+        run: |
+          echo "::add-matcher::PartyOverlay/.github/matchers/${{ github.job }}.json"
+
+      # Fetches OverlayPlugin's dependencies, strips FFXIVClientStructs, builds Debug then
+      # Release, and stages out/Release/package/PartyOverlay/.
+      - name: Run Build
+        run: .\PartyOverlay\build.bat -ci
+        shell: cmd
+
+      - name: Determine Version
+        shell: pwsh
+        run: |
+          [xml]$propscontents = Get-Content -Path "PartyOverlay\Directory.Build.props";
+          $version = $propscontents.Project.PropertyGroup.AssemblyVersion;
+          $version = ($version | Out-String).Trim()
+          echo "version=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      # Expected "PartyOverlay" as top level item of the .zip, which is why the staged
+      # package directory - not its contents - is uploaded.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PartyOverlay-${{ env.version }}-${{ env.artifact_sha }}
+          path: out/Release/package/
+          retention-days: 30

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PartyOverlay - 隊伍 PR 總覽</title>
+  <link rel="stylesheet" href="css/pr.css">
+</head>
+<body>
+  <div id="app" class="pr-root">
+
+    <!-- Filter row: one row above everything it scopes -->
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <span class="status-dot" id="statusDot" title="OverlayPlugin 連線狀態"></span>
+        <h1 class="title">隊伍 PR 總覽</h1>
+        <span class="party-count" id="partyCount">—</span>
+      </div>
+
+      <div class="toolbar-right">
+        <div class="chips" id="categoryChips" role="group" aria-label="副本分類">
+          <button class="chip is-active" data-category="*">全部</button>
+        </div>
+
+        <div class="chips" id="scaleChips" role="group" aria-label="色階">
+          <button class="chip is-active" data-scale="parse" title="FFLogs 慣用色階（灰綠藍紫橘粉金）">傳統</button>
+          <button class="chip" data-scale="ordinal" title="單色階，已通過色盲與對比檢查">色盲友善</button>
+        </div>
+
+        <button class="chip" id="refreshBtn" title="重新抓取排行資料">⟳</button>
+      </div>
+    </header>
+
+    <!-- Matrix (a real table: this is also the table view) -->
+    <div class="matrix-scroll" id="matrixScroll">
+      <table class="matrix" id="matrix">
+        <caption class="sr-only">隊伍成員各副本 PR（百分位）對照表</caption>
+        <thead id="matrixHead"></thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">👥</div>
+      <div class="empty-text" id="emptyText">等待 OverlayPlugin 連線...</div>
+      <div class="empty-sub" id="emptySub">組隊後會自動載入每位成員的 PR</div>
+    </div>
+
+    <!-- Scale legend: mandatory for a multi-hue value scale -->
+    <footer class="footer">
+      <div class="legend" id="legend" aria-label="PR 色階圖例"></div>
+      <div class="meta" id="meta"></div>
+    </footer>
+
+    <div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/pr.js"></script>
+</body>
+</html>
