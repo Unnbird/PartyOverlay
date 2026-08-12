@@ -47,12 +47,12 @@
 
   var TIERS = [
     { min: 100, label: '100', parse: '#e5cc80', ord: '#cde2fb', parseInk: '#0b0b0b', ordInk: '#0b0b0b', star: true },
-    { min: 99,  label: '99',  parse: '#e268a8', ord: '#cde2fb', parseInk: '#0b0b0b', ordInk: '#0b0b0b' },
-    { min: 95,  label: '95',  parse: '#ff8000', ord: '#9ec5f4', parseInk: '#0b0b0b', ordInk: '#0b0b0b' },
-    { min: 75,  label: '75',  parse: '#a335ee', ord: '#6da7ec', parseInk: '#ffffff', ordInk: '#0b0b0b' },
-    { min: 50,  label: '50',  parse: '#0070ff', ord: '#3987e5', parseInk: '#ffffff', ordInk: '#ffffff' },
-    { min: 25,  label: '25',  parse: '#1eff00', ord: '#256abf', parseInk: '#0b0b0b', ordInk: '#ffffff' },
-    { min: 0,   label: '<25', parse: '#666666', ord: '#184f95', parseInk: '#ffffff', ordInk: '#ffffff' }
+    { min: 99, label: '99', parse: '#e268a8', ord: '#cde2fb', parseInk: '#0b0b0b', ordInk: '#0b0b0b' },
+    { min: 95, label: '95', parse: '#ff8000', ord: '#9ec5f4', parseInk: '#0b0b0b', ordInk: '#0b0b0b' },
+    { min: 75, label: '75', parse: '#a335ee', ord: '#6da7ec', parseInk: '#ffffff', ordInk: '#0b0b0b' },
+    { min: 50, label: '50', parse: '#0070ff', ord: '#3987e5', parseInk: '#ffffff', ordInk: '#ffffff' },
+    { min: 25, label: '25', parse: '#1eff00', ord: '#256abf', parseInk: '#0b0b0b', ordInk: '#ffffff' },
+    { min: 0, label: '<25', parse: '#666666', ord: '#184f95', parseInk: '#ffffff', ordInk: '#ffffff' }
   ];
 
   // ---------------------------------------------------------------- DOM elements
@@ -373,13 +373,7 @@
   }
 
   function renderLegend() {
-    var html = '<span class="legend-label">PR</span>';
-    TIERS.slice().reverse().forEach(function (tier) {
-      html += '<span class="swatch" style="background:' + tierFill(tier) + ';color:' + tierInk(tier) + '">' +
-        esc(tier.label) + (tier.star && state.scale === 'ordinal' ? '<span class="star">★</span>' : '') +
-        '</span>';
-    });
-    el.legend.innerHTML = html;
+    if (el.legend) el.legend.innerHTML = '';
   }
 
   function renderMeta() {
@@ -404,11 +398,11 @@
       var jobAbbr = m.jobName || 'ADV';
       html += '<div class="popover-row" data-name="' + esc(m.name) + '">' +
         '<div class="popover-row-left">' +
-          '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
-          '<span>' + esc(m.name) + '</span>' +
+        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span>' + esc(m.name) + '</span>' +
         '</div>' +
         '<span class="member-world">' + esc(m.world ? '@' + m.world : '') + '</span>' +
-      '</div>';
+        '</div>';
     });
     container.innerHTML = html;
   }
@@ -439,10 +433,10 @@
 
       row += '<th class="member-col-th" title="' + esc(titleBits.join(' · ')) + '">' +
         '<div class="member-col" data-name="' + esc(member.name) + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
-          '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
-          '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
+        '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
         '</div>' +
-      '</th>';
+        '</th>';
     });
 
     row += '</tr>';
@@ -451,6 +445,11 @@
 
   function renderMatrixBody(encounters, members) {
     var colCount = members.length + 1;
+    var isMetricMode = state.metric !== 'perf';
+
+    if (el.root) {
+      el.root.classList.toggle('is-metric-mode', isMetricMode);
+    }
 
     if (encounters.length === 0) {
       el.matrixBody.innerHTML = '<tr><td class="dropdown-empty" colspan="' + colCount + '">此分類無副本</td></tr>';
@@ -478,12 +477,16 @@
           return;
         }
 
-        if (bestByMember[member.name] === undefined || cell.pr > bestByMember[member.name]) {
-          bestByMember[member.name] = cell.pr;
+        var val = isMetricMode ? (cell[state.metric] || cell.rdps || 0) : cell.pr;
+
+        if (bestByMember[member.name] === undefined || val > bestByMember[member.name].val) {
+          bestByMember[member.name] = { val: val, pr: cell.pr };
         }
 
-        var shown = Math.floor(cell.pr);
-        var tier = tierFor(shown);
+        var shownPr = Math.floor(cell.pr);
+        var tier = tierFor(shownPr);
+        var displayStr = isMetricMode ? formatNumber(Math.round(val), 0) : shownPr;
+
         var payload = {
           member: member.name,
           duty: enc.name,
@@ -499,10 +502,10 @@
           qualified: cell.qualified
         };
 
-        html += '<td class="cell" tabindex="0"' +
+        html += '<td class="cell' + (isMetricMode ? ' is-metric' : '') + '" tabindex="0"' +
           ' style="background:' + tierFill(tier) + ';color:' + tierInk(tier) + '"' +
           ' data-tip="' + esc(JSON.stringify(payload)) + '">' +
-          shown + (tier.star && state.scale === 'ordinal' ? '<span class="star">★</span>' : '') +
+          displayStr + (!isMetricMode && tier.star && state.scale === 'ordinal' ? '<span class="star">★</span>' : '') +
           '</td>';
       });
 
@@ -511,8 +514,13 @@
 
     html += '<tr class="summary-row"><td class="duty-td summary-label">最佳</td>';
     members.forEach(function (member) {
-      var best = bestByMember[member.name];
-      html += '<td class="cell is-summary">' + (best !== undefined ? '<b>' + Math.floor(best) + '</b>' : '<span>—</span>') + '</td>';
+      var bestObj = bestByMember[member.name];
+      if (bestObj !== undefined) {
+        var summaryStr = isMetricMode ? formatNumber(Math.round(bestObj.val), 0) : Math.floor(bestObj.pr);
+        html += '<td class="cell is-summary"><b>' + summaryStr + '</b></td>';
+      } else {
+        html += '<td class="cell is-summary"><span>—</span></td>';
+      }
     });
     html += '</tr>';
 
@@ -539,7 +547,7 @@
       if (isSel) selectedName = e.name;
       menuHtml += '<div class="dropdown-option' + (isSel ? ' is-selected' : '') + '" data-value="' + esc(e.key) + '">' +
         esc(e.category) + ' - ' + esc(e.name) +
-      '</div>';
+        '</div>';
     });
     el.statEncounterMenu.innerHTML = menuHtml;
     el.statEncounterLabel.textContent = selectedName;
@@ -643,7 +651,7 @@
           '<td class="single-th">' + esc(enc.category) + '</td>' +
           '<td class="single-th">' + esc(enc.name) + '</td>' +
           '<td class="summary-td" colspan="7"><span class="member-note">無紀錄</span></td>' +
-        '</tr>';
+          '</tr>';
         return;
       }
 
@@ -661,7 +669,7 @@
         '<td class="summary-td">' + formatTime(cell.clearSeconds) + '</td>' +
         '<td class="summary-td">' + esc(JOB_ABBR[cell.job] || cell.job || '—') + '</td>' +
         '<td class="summary-td">' + formatDate(cell.recordedAt) + '</td>' +
-      '</tr>';
+        '</tr>';
     });
 
     el.singleCharTableBody.innerHTML = html;

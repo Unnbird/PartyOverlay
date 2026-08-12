@@ -12,24 +12,34 @@
   box-shadow: var(--fo-shadow);
   display: flex;
   flex-direction: column;
-  width: 380px;
-  max-width: 100vw;
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
 }
 
 .overlay-root.is-collapsed {
   width: max-content;
+  height: auto;
   box-shadow: none;
 }
-.overlay-root.is-collapsed .title-bar { border-bottom: 0; border-radius: var(--fo-radius); }
-.overlay-root.is-collapsed > :not(.title-bar) { display: none; }
+
+.overlay-root.is-collapsed .title-bar {
+  border-bottom: 0;
+  border-radius: var(--fo-radius);
+}
+
+.overlay-root.is-collapsed> :not(.title-bar) {
+  display: none;
+}
 
 .badge.cross-realm {
   color: var(--fo-accent-gold);
   border: 1px solid rgb(241 210 138 / 45%);
   background: rgb(39 35 23 / 88%);
 }
+
 .badge.alliance {
   color: var(--fo-connected);
   border: 1px solid var(--fo-connected-border);
@@ -41,8 +51,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  max-height: 420px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .member-row {
@@ -66,15 +75,39 @@
   width: 3px;
   background: var(--fo-text-muted);
 }
-.member-row[data-role="Tank"]::before { background: var(--role-tank); }
-.member-row[data-role="Healer"]::before { background: var(--role-healer); }
-.member-row[data-role="DPS"]::before { background: var(--role-dps); }
 
-.member-row .job-badge { width: 34px; height: 30px; font-size: 11px; }
+.member-row[data-role="Tank"]::before {
+  background: var(--role-tank);
+}
 
-.member-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.member-row[data-role="Healer"]::before {
+  background: var(--role-healer);
+}
 
-.name-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.member-row[data-role="DPS"]::before {
+  background: var(--role-dps);
+}
+
+.member-row .job-badge {
+  width: 34px;
+  height: 30px;
+  font-size: 11px;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
 
 .member-name {
   font-weight: 600;
@@ -88,7 +121,10 @@
   gap: 4px;
 }
 
-.leader-icon { color: var(--fo-accent-gold); display: inline-flex; }
+.leader-icon {
+  color: var(--fo-accent-gold);
+  display: inline-flex;
+}
 
 .world-tag {
   font-size: 10px;
@@ -99,7 +135,11 @@
   border-radius: 4px;
   flex-shrink: 0;
 }
-.world-tag.cross-world { color: var(--fo-accent-gold); border: 1px solid rgb(241 210 138 / 30%); }
+
+.world-tag.cross-world {
+  color: var(--fo-accent-gold);
+  border: 1px solid rgb(241 210 138 / 30%);
+}
 
 .detail-row {
   display: flex;
@@ -109,10 +149,39 @@
   color: var(--fo-text-muted);
 }
 
-.level-text { font-weight: 600; color: var(--fo-text-dim); }
+.level-text {
+  font-weight: 600;
+  color: var(--fo-text-dim);
+}
 
-.empty-state { display: none; flex-direction: column; align-items: center; padding: 28px 12px; text-align: center; }
-.empty-state.is-visible { display: flex; }
-.empty-icon { color: var(--fo-text-muted); opacity: 0.6; margin-bottom: 6px; }
-.empty-text { font-size: 13px; font-weight: 600; color: var(--fo-text-dim); }
-.empty-sub { font-size: 11px; color: var(--fo-text-muted); margin-top: 3px; max-width: 100%; word-break: break-word; }
+.empty-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.empty-state.is-visible {
+  display: flex;
+}
+
+.empty-icon {
+  color: var(--fo-text-muted);
+  opacity: 0.6;
+  margin-bottom: 6px;
+}
+
+.empty-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fo-text-dim);
+}
+
+.empty-sub {
+  font-size: 11px;
+  color: var(--fo-text-muted);
+  margin-top: 3px;
+  max-width: 100%;
+  word-break: break-word;
+}

@@ -74,12 +74,12 @@
 
     el.partyBadge.textContent = isCross ? '跨服 ' + data.members.length + ' 人'
       : isAlliance ? '團隊 ' + data.members.length + ' 人'
-      : '隊伍 ' + data.members.length + ' 人';
+        : '隊伍 ' + data.members.length + ' 人';
     el.partyBadge.className = 'badge' + (isCross ? ' cross-realm' : isAlliance ? ' alliance' : '');
     el.partyBadge.title = [data.source, data.diagnostic].filter(Boolean).join(' | ');
     el.partyTitle.textContent = isCross ? '跨服隊伍 (Cross-Realm Party)'
       : isAlliance ? '團隊列表 (Alliance)'
-      : '隊伍成員 (Party Members)';
+        : '隊伍成員 (Party Members)';
 
     el.partyGrid.innerHTML = data.members.map(function (m) {
       var role = m.jobRole || 'DPS';
@@ -88,23 +88,23 @@
 
       return '' +
         '<div class="member-row" data-role="' + escapeHtml(role) + '">' +
-          '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(role) + '">' + escapeHtml(m.jobName || 'ADV') + '</span>' +
-          '<div class="member-info">' +
-            '<div class="name-row">' +
-              '<span class="member-name">' +
-                escapeHtml(m.name) +
-                (m.isLeader ? '<span class="leader-icon" title="隊長">' + icon('crown', 12) + '</span>' : '') +
-              '</span>' +
-              '<span class="world-tag' + (m.isCrossRealm ? ' cross-world' : '') + '">' + escapeHtml(worldTag) + '</span>' +
-            '</div>' +
-            '<div class="detail-row">' +
-              '<span class="level-text">Lv.' + (m.level || 0) + '</span>' +
-              '<span>·</span>' +
-              '<span>' + escapeHtml(role) + '</span>' +
-              (groupTag ? '<span>·</span><span>Group ' + groupTag + '</span>' : '') +
-              (m.inCurrentZone === false ? '<span>·</span><span title="不在同一區域">區域外</span>' : '') +
-            '</div>' +
-          '</div>' +
+        '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(role) + '">' + escapeHtml(m.jobName || 'ADV') + '</span>' +
+        '<div class="member-info">' +
+        '<div class="name-row">' +
+        '<span class="member-name">' +
+        escapeHtml(m.name) +
+        (m.isLeader ? '<span class="leader-icon" title="隊長">' + icon('crown', 12) + '</span>' : '') +
+        '</span>' +
+        '<span class="world-tag' + (m.isCrossRealm ? ' cross-world' : '') + '">' + escapeHtml(worldTag) + '</span>' +
+        '</div>' +
+        '<div class="detail-row">' +
+        '<span class="level-text">Lv.' + (m.level || 0) + '</span>' +
+        '<span>·</span>' +
+        '<span>' + escapeHtml(role) + '</span>' +
+        (groupTag ? '<span>·</span><span>Group ' + groupTag + '</span>' : '') +
+        (m.inCurrentZone === false ? '<span>·</span><span title="不在同一區域">區域外</span>' : '') +
+        '</div>' +
+        '</div>' +
         '</div>';
     }).join('');
   }

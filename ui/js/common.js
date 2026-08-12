@@ -1,4 +1,4 @@
-(function() {
+(function () {
   let wsUrl = /[\?&]OVERLAY_WS=([^&]+)/.exec(location.href);
   let ws = null;
   let queue = [];

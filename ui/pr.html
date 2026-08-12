@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/pr.css">
 </head>
+
 <body>
   <div id="app" class="pr-root">
 
@@ -60,7 +62,8 @@
       <div class="control-row">
         <div class="custom-dropdown" id="jobDropdown">
           <button class="dropdown-trigger" id="jobDropdownBtn" title="職業過濾">
-            <span data-icon="shield"></span><span id="jobDropdownLabel">職業: 全部</span><span class="icon-chevron" data-icon="chevronDown"></span>
+            <span data-icon="shield"></span><span id="jobDropdownLabel">職業: 全部</span><span class="icon-chevron"
+              data-icon="chevronDown"></span>
           </button>
           <div class="dropdown-menu" id="jobDropdownMenu">
             <div class="dropdown-group-title">職責分組</div>
@@ -96,7 +99,8 @@
 
         <div class="custom-dropdown" id="metricDropdown">
           <button class="dropdown-trigger" id="metricDropdownBtn" title="數據指標">
-            <span data-icon="trendingUp"></span><span id="metricDropdownLabel">指標: Perf %</span><span class="icon-chevron" data-icon="chevronDown"></span>
+            <span data-icon="trendingUp"></span><span id="metricDropdownLabel">指標: Perf %</span><span
+              class="icon-chevron" data-icon="chevronDown"></span>
           </button>
           <div class="dropdown-menu" id="metricDropdownMenu">
             <div class="dropdown-option is-selected" data-value="perf">Perf % (Percentile)</div>
@@ -110,7 +114,8 @@
 
         <div class="custom-dropdown" id="partitionDropdown">
           <button class="dropdown-trigger" id="partitionDropdownBtn" title="分區版本">
-            <span data-icon="globe"></span><span id="partitionDropdownLabel">Standard</span><span class="icon-chevron" data-icon="chevronDown"></span>
+            <span data-icon="globe"></span><span id="partitionDropdownLabel">Standard</span><span class="icon-chevron"
+              data-icon="chevronDown"></span>
           </button>
           <div class="dropdown-menu" id="partitionDropdownMenu">
             <div class="dropdown-option is-selected" data-value="standard">Standard</div>
@@ -151,7 +156,8 @@
           <span class="stat-label">選擇副本</span>
           <div class="custom-dropdown" id="statEncounterDropdown">
             <button class="dropdown-trigger" id="statEncounterBtn" title="選擇統計副本">
-              <span data-icon="swords"></span><span id="statEncounterLabel">副本選擇</span><span class="icon-chevron" data-icon="chevronDown"></span>
+              <span data-icon="swords"></span><span id="statEncounterLabel">副本選擇</span><span class="icon-chevron"
+                data-icon="chevronDown"></span>
             </button>
             <div class="dropdown-menu" id="statEncounterMenu"></div>
           </div>
@@ -224,7 +230,6 @@
 
     <!-- Legend & Footer: hidden while collapsed -->
     <footer class="footer" id="footer">
-      <div class="legend" id="legend" aria-label="PR 色階圖例"></div>
       <div class="meta" id="meta"></div>
     </footer>
 
@@ -235,4 +240,5 @@
   <script src="js/common.js"></script>
   <script src="js/pr.js"></script>
 </body>
+
 </html>
