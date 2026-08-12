@@ -85,10 +85,12 @@
       var role = m.jobRole || 'DPS';
       var worldTag = m.homeWorldName ? '@' + m.homeWorldName : '';
       var groupTag = m.groupIndex > 0 ? String.fromCharCode(65 + m.groupIndex) : '';
+      var jobKey = m.jobName || 'ADV';
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobKey, 32) : escapeHtml(jobKey);
 
       return '' +
         '<div class="member-row" data-role="' + escapeHtml(role) + '">' +
-        '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(role) + '">' + escapeHtml(m.jobName || 'ADV') + '</span>' +
+        '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(jobKey + ' (' + role + ')') + '">' + jobIconHtml + '</span>' +
         '<div class="member-info">' +
         '<div class="name-row">' +
         '<span class="member-name">' +

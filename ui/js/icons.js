@@ -29,6 +29,57 @@
     activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'
   };
 
+  var JOB_NAMES = {
+    PLD: 'Paladin', Paladin: 'Paladin',
+    WAR: 'Warrior', Warrior: 'Warrior',
+    DRK: 'DarkKnight', DarkKnight: 'DarkKnight',
+    GNB: 'Gunbreaker', Gunbreaker: 'Gunbreaker',
+    WHM: 'WhiteMage', WhiteMage: 'WhiteMage',
+    SCH: 'Scholar', Scholar: 'Scholar',
+    AST: 'Astrologian', Astrologian: 'Astrologian',
+    SGE: 'Sage', Sage: 'Sage',
+    MNK: 'Monk', Monk: 'Monk',
+    DRG: 'Dragoon', Dragoon: 'Dragoon',
+    NIN: 'Ninja', Ninja: 'Ninja',
+    SAM: 'Samurai', Samurai: 'Samurai',
+    RPR: 'Reaper', Reaper: 'Reaper',
+    VPR: 'Viper', Viper: 'Viper',
+    BRD: 'Bard', Bard: 'Bard',
+    MCH: 'Machinist', Machinist: 'Machinist',
+    DNC: 'Dancer', Dancer: 'Dancer',
+    BLM: 'BlackMage', BlackMage: 'BlackMage',
+    SMN: 'Summoner', Summoner: 'Summoner',
+    RDM: 'RedMage', RedMage: 'RedMage',
+    PCT: 'Pictomancer', Pictomancer: 'Pictomancer',
+    BLU: 'BlueMage', BlueMage: 'BlueMage'
+  };
+
+  var JOB_PATHS = {
+    PLD: '<path d="M12 2L4 6v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V6l-8-4zm0 4l4 3h-3v7h-2V9H8l4-3z"/>',
+    WAR: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/>',
+    DRK: '<path d="M12 2v14M9 5l3-3 3 3M7 16h10M12 16v6"/>',
+    GNB: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M8 8l8 8M16 8l-8 8"/>',
+    WHM: '<path d="M12 2a5 5 0 0 0-5 5c0 4 5 11 5 11s5-7 5-11a5 5 0 0 0-5-5zm0 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>',
+    SCH: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M6 6h10M6 10h10"/>',
+    AST: '<circle cx="12" cy="12" r="9"/><polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2"/>',
+    SGE: '<path d="M6 3l6 6 6-6M6 21l6-6 6 6M3 12h18"/>',
+    MNK: '<path d="M6 4v16M12 2v20M18 4v16"/>',
+    DRG: '<path d="M12 2l3 6-3 14-3-14 3-6zM5 8l14 8M19 8L5 16"/>',
+    NIN: '<polygon points="12 2 22 12 12 22 2 12 12 2"/><polygon points="12 7 17 12 12 17 7 12 12 7"/>',
+    SAM: '<path d="M4 20L20 4M8 20l12-12M4 16L16 4"/>',
+    RPR: '<path d="M18 3c-5 0-9 4-9 9v9M9 7l9-4"/>',
+    VPR: '<path d="M7 3l10 18M17 3L7 21"/>',
+    BRD: '<path d="M12 3c-5 0-9 4-9 9s4 9 9 9M12 3v18M16 7l-4 5 4 5"/>',
+    MCH: '<rect x="5" y="5" width="14" height="14" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    DNC: '<circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/>',
+    BLM: '<polygon points="12 2 15 8 21 9 17 14 18 21 12 17 6 21 7 14 3 9 9 8 12 2"/>',
+    SMN: '<path d="M12 2L4 20h16L12 2zm0 6l4 8H8l4-8z"/>',
+    RDM: '<path d="M12 2l8 10-8 10-8-10 8-10zM12 6v12M6 12h12"/>',
+    PCT: '<path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L8.5 18.5l-5 1.5 1.5-5L18.37 2.63z"/>',
+    BLU: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7zm10 4a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>',
+    ADV: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'
+  };
+
   function svg(name, size) {
     var body = PATHS[name];
     if (!body) return '';
@@ -38,5 +89,30 @@
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
   }
 
-  window.PartyOverlayIcons = { svg: svg };
+  function jobSvg(jobKey, size) {
+    var key = String(jobKey || 'ADV').toUpperCase();
+    var body = JOB_PATHS[key] || JOB_PATHS.ADV;
+    var s = size || 16;
+    return '<svg class="icon icon-job icon-job-' + key.toLowerCase() + '" width="' + s + '" height="' + s +
+      '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+  }
+
+  function jobIcon(jobKey, size) {
+    var key = String(jobKey || 'ADV').trim();
+    var upper = key.toUpperCase();
+    var fullName = JOB_NAMES[upper] || JOB_NAMES[key] || key;
+    var s = size || 16;
+
+    if (fullName && fullName !== 'ADV') {
+      var localUrl = 'icons/jobs/' + fullName + '.png';
+      var fallbackSvg = jobSvg(upper, s).replace(/"/g, '&quot;');
+      return '<img class="job-icon-img" src="' + localUrl + '" width="' + s + '" height="' + s +
+        '" alt="' + upper + '" title="' + upper + '" onerror="this.outerHTML=this.getAttribute(\'data-fallback\')" data-fallback="' + fallbackSvg + '" />';
+    }
+
+    return jobSvg(upper, s);
+  }
+
+  window.PartyOverlayIcons = { svg: svg, jobIcon: jobIcon, jobSvg: jobSvg };
 })();

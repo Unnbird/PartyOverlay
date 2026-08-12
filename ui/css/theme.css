@@ -417,16 +417,35 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 30px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  padding: 3px 4px;
-  border-radius: 5px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 7px;
   background: rgb(0 0 0 / 45%);
   border: 1px solid var(--fo-border-faint);
   color: var(--fo-text-dim);
   flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.job-icon-img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  display: block;
+}
+
+.job-badge-compact {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+}
+
+.job-badge-compact .job-icon-img,
+.job-badge-compact .icon-job {
+  width: 28px;
+  height: 28px;
 }
 
 .job-badge[data-role="Tank"] {
@@ -437,6 +456,11 @@ body {
 .job-badge[data-role="Healer"] {
   border-color: var(--role-healer);
   color: var(--role-healer);
+}
+
+.job-badge[data-role="DPS"] {
+  border-color: var(--role-dps);
+  color: var(--role-dps);
 }
 
 .job-badge[data-role="DPS"] {

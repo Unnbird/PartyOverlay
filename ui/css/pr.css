@@ -19,12 +19,12 @@
   overflow: hidden;
   position: relative;
 
-  --cell-w: 34px;
-  --cell-h: 28px;
+  --cell-w: 44px;
+  --cell-h: 34px;
 }
 
 .pr-root.is-metric-mode {
-  --cell-w: 52px;
+  --cell-w: 58px;
 }
 
 .pr-root.is-metric-mode .cell {

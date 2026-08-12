@@ -396,9 +396,10 @@
     var html = '';
     state.members.forEach(function (m) {
       var jobAbbr = m.jobName || 'ADV';
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
       html += '<div class="popover-row" data-name="' + esc(m.name) + '">' +
         '<div class="popover-row-left">' +
-        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span>' + esc(m.name) + '</span>' +
         '</div>' +
         '<span class="member-world">' + esc(m.world ? '@' + m.world : '') + '</span>' +
@@ -422,6 +423,7 @@
     members.forEach(function (member) {
       var record = state.prByName[member.name] || {};
       var jobAbbr = member.jobName || 'ADV';
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
       var worldMismatch = record.status === 'ok' && member.world && record.servers &&
         record.servers.length > 0 && record.servers.indexOf(member.world) === -1;
       var warn = worldMismatch || record.status === 'error';
@@ -433,7 +435,7 @@
 
       row += '<th class="member-col-th" title="' + esc(titleBits.join(' · ')) + '">' +
         '<div class="member-col" data-name="' + esc(member.name) + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
-        '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
         '</div>' +
         '</th>';
@@ -562,10 +564,11 @@
       var record = state.prByName[m.name] || { status: 'pending', encounters: {} };
       var cell = record.encounters ? record.encounters[state.selectedStatEncounterKey] : null;
       var jobAbbr = m.jobName || 'ADV';
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
 
       html += '<tr class="member-row" data-name="' + esc(m.name) + '" style="cursor:pointer;" title="點擊查看個人詳細戰績">';
       html += '<td class="member-td"><div class="member" data-role="' + esc(m.jobRole || 'DPS') + '">' +
-        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span class="member-name">' + esc(m.name) + '</span>' +
         (m.world ? ' <span class="member-world">@' + esc(m.world) + '</span>' : '') +
         '</div></td>';
@@ -610,7 +613,13 @@
 
     el.singleCharName.textContent = charName;
     el.singleCharWorld.textContent = memberObj && memberObj.world ? '@' + memberObj.world : '';
-    el.singleCharAvatar.textContent = memberObj ? (memberObj.jobName || 'ADV') : 'ADV';
+
+    var charJob = memberObj ? (memberObj.jobName || 'ADV') : 'ADV';
+    if (window.PartyOverlayIcons) {
+      el.singleCharAvatar.innerHTML = window.PartyOverlayIcons.jobIcon(charJob, 32);
+    } else {
+      el.singleCharAvatar.textContent = charJob;
+    }
 
     var encounters = visibleEncounters();
     var clearedCount = 0;
