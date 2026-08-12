@@ -118,7 +118,6 @@ namespace PartyOverlayPlugin
                     repo = "Unnbird/PartyOverlay",
                     downloadUrl = "https://github.com/{REPO}/releases/download/v{VERSION}/PartyOverlay-{VERSION}.zip",
                     strippedDirs = 1,
-                    overwrite = false,
                 };
 
                 await System.Threading.Tasks.Task.Run(() => RainbowMage.OverlayPlugin.Updater.Updater.RunAutoUpdater(options, false));
