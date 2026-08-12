@@ -5,7 +5,8 @@ param (
     # Continuous integration mode: build Debug first so debug-only breakage gets caught too.
     [switch]$ci = $false,
 
-    # Git ref of OverlayPlugin/OverlayPlugin to use when no source tree is present yet.
+    # Git ref of OverlayPlugin/OverlayPlugin to clone when no source tree is present yet.
+    # Defaults to whatever GitHub currently reports as the latest release.
     [string]$OverlayPluginRef = "",
 
     # Assume OverlayPlugin's Thirdparty/ and the stripped FFXIVClientStructs are already in place.
@@ -14,8 +15,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-# Pinned so a fresh clone (and CI) builds against a known-good OverlayPlugin.
-$DEFAULT_OVERLAYPLUGIN_REF = "v0.19.104"
+$OVERLAYPLUGIN_API = "https://api.github.com/repos/OverlayPlugin/OverlayPlugin/releases/latest"
 $OVERLAYPLUGIN_URL = "https://github.com/OverlayPlugin/OverlayPlugin.git"
 
 # PartyOverlayPlugin.csproj references ..\..\OverlayPlugin\* and writes to ..\..\out\, so this
@@ -30,14 +30,6 @@ $workspace = Split-Path -Parent $repo
 $opDir = Join-Path $workspace "OverlayPlugin"
 $project = Join-Path $repo "PartyOverlayPlugin\PartyOverlayPlugin.csproj"
 
-if (-not $OverlayPluginRef) {
-    if ($env:OVERLAYPLUGIN_REF) {
-        $OverlayPluginRef = $env:OVERLAYPLUGIN_REF
-    } else {
-        $OverlayPluginRef = $DEFAULT_OVERLAYPLUGIN_REF
-    }
-}
-
 function Get-AssemblyVersion($propsPath) {
     [xml]$props = Get-Content -Path $propsPath
     $version = ($props.Project.PropertyGroup.AssemblyVersion | Out-String).Trim()
@@ -49,6 +41,15 @@ Push-Location $workspace
 try {
     # An existing checkout is left alone - it may hold local work.
     if (-not (Test-Path (Join-Path $opDir "OverlayPlugin.sln"))) {
+        if (-not $OverlayPluginRef) {
+            if ($env:OVERLAYPLUGIN_REF) {
+                $OverlayPluginRef = $env:OVERLAYPLUGIN_REF
+            } else {
+                echo "==> Resolving latest OverlayPlugin release..."
+                $OverlayPluginRef = (Invoke-RestMethod -Uri $OVERLAYPLUGIN_API -Headers @{ "User-Agent" = "PartyOverlay-build" }).tag_name
+                if (-not $OverlayPluginRef) { throw "Failed to resolve latest OverlayPlugin release" }
+            }
+        }
         echo "==> Cloning OverlayPlugin $OverlayPluginRef..."
         git clone --depth 1 --branch $OverlayPluginRef $OVERLAYPLUGIN_URL $opDir
         if ($LASTEXITCODE -ne 0) { throw "Failed to clone OverlayPlugin" }

@@ -29,14 +29,12 @@ on:
   workflow_dispatch:
     inputs:
       overlayplugin_ref:
-        description: 'OverlayPlugin git ref to build against (blank = pinned default)'
+        description: 'OverlayPlugin git ref to build against (blank = latest release)'
         required: false
         default: ''
 
 env:
   OVERLAYPLUGIN_REPO: OverlayPlugin/OverlayPlugin
-  # Keep in sync with $DEFAULT_OVERLAYPLUGIN_REF in build.ps1.
-  OVERLAYPLUGIN_DEFAULT_REF: v0.19.104
 
 jobs:
   msbuild:
@@ -56,7 +54,13 @@ jobs:
         shell: bash
         run: |
           ref="${{ github.event.inputs.overlayplugin_ref }}"
-          if [ -z "$ref" ]; then ref="${{ env.OVERLAYPLUGIN_DEFAULT_REF }}"; fi
+          if [ -z "$ref" ]; then
+            ref=$(curl -sSf "https://api.github.com/repos/${{ env.OVERLAYPLUGIN_REPO }}/releases/latest" | jq -r '.tag_name')
+          fi
+          if [ -z "$ref" ] || [ "$ref" = "null" ]; then
+            echo "Failed to resolve latest OverlayPlugin release" >&2
+            exit 1
+          fi
           echo "Building against OverlayPlugin $ref"
           echo "OVERLAYPLUGIN_REF=$ref" >> $GITHUB_ENV
 
