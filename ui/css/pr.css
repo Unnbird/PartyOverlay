@@ -75,8 +75,12 @@
 
 .main-content {
   position: relative;
-  min-height: 100px;
+  flex: 1;
+  min-height: 0;
   padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .view-panel {
@@ -86,7 +90,10 @@
 .stat-layout-scroll,
 .single-view-scroll,
 .matrix-scroll {
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
 }
 
 .matrix-scroll.is-stale {
