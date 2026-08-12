@@ -1,9 +1,5 @@
 /**
- * 隊伍 PR 總覽 (FFLogsViewer/FF14MarketOverlay-inspired UI)
- *
- * OverlayPlugin wiring (initOverlayEvents / onPartyState / enablePreview) follows the
- * same handshake pattern as uiold/js/pr.js - that part works and isn't being redesigned.
- * Everything else (markup, styling, collapse behaviour, icons) is new.
+ * 隊伍 PR 總覽 (FFLogsViewer-inspired UI Engine)
  *
  * Party roster comes from PartyOverlayPlugin (onPartyOverlayUpdate).
  * PR values come from the TC ranking project:
@@ -61,34 +57,31 @@
     root: document.getElementById('app'),
     statusDot: document.getElementById('statusDot'),
     partyCount: document.getElementById('partyCount'),
-    collapseBtn: document.getElementById('collapseBtn'),
-
     btnPartyView: document.getElementById('btnPartyView'),
     btnSingleView: document.getElementById('btnSingleView'),
     partyLayoutGroup: document.getElementById('partyLayoutGroup'),
     btnEncounterLayout: document.getElementById('btnEncounterLayout'),
     btnStatLayout: document.getElementById('btnStatLayout'),
     partyListBtn: document.getElementById('partyListBtn'),
-    partyMembersMenu: document.getElementById('partyMembersMenu'),
+    partyMembersPopup: document.getElementById('partyMembersPopup'),
+    partyMembersList: document.getElementById('partyMembersList'),
 
+    // Custom dropdown triggers & menus
     jobDropdownBtn: document.getElementById('jobDropdownBtn'),
     jobDropdownMenu: document.getElementById('jobDropdownMenu'),
-    jobDropdownLabel: document.getElementById('jobDropdownLabel'),
     metricDropdownBtn: document.getElementById('metricDropdownBtn'),
     metricDropdownMenu: document.getElementById('metricDropdownMenu'),
-    metricDropdownLabel: document.getElementById('metricDropdownLabel'),
     partitionDropdownBtn: document.getElementById('partitionDropdownBtn'),
     partitionDropdownMenu: document.getElementById('partitionDropdownMenu'),
-    partitionDropdownLabel: document.getElementById('partitionDropdownLabel'),
     statEncounterBtn: document.getElementById('statEncounterBtn'),
     statEncounterMenu: document.getElementById('statEncounterMenu'),
-    statEncounterLabel: document.getElementById('statEncounterLabel'),
 
     timeframeBtn: document.getElementById('timeframeBtn'),
     categoryChips: document.getElementById('categoryChips'),
     scaleChips: document.getElementById('scaleChips'),
     refreshBtn: document.getElementById('refreshBtn'),
 
+    // Main views
     mainContent: document.getElementById('mainContent'),
     matrixScroll: document.getElementById('matrixScroll'),
     matrixHead: document.getElementById('matrixHead'),
@@ -99,12 +92,14 @@
     statMetricHeader: document.getElementById('statMetricHeader'),
 
     singleViewScroll: document.getElementById('singleViewScroll'),
+    singleCharCard: document.getElementById('singleCharCard'),
     singleCharAvatar: document.getElementById('singleCharAvatar'),
     singleCharName: document.getElementById('singleCharName'),
     singleCharWorld: document.getElementById('singleCharWorld'),
     singleCharAvgPr: document.getElementById('singleCharAvgPr'),
     singleCharClearedCount: document.getElementById('singleCharClearedCount'),
     singleCharMainJob: document.getElementById('singleCharMainJob'),
+    singleCharStatusInfo: document.getElementById('singleCharStatusInfo'),
     singleCharTableBody: document.getElementById('singleCharTableBody'),
     singleMetricHeader: document.getElementById('singleMetricHeader'),
     btnBackToParty: document.getElementById('btnBackToParty'),
@@ -123,20 +118,19 @@
   var state = {
     connected: false,
     preview: false,
-    collapsed: false,
-    viewMode: 'party',
-    partyLayout: 'encounter',
-    selectedStatEncounterKey: null,
-    selectedCharName: null,
+    viewMode: 'party',               // 'party' | 'single'
+    partyLayout: 'encounter',        // 'encounter' | 'stat'
+    selectedStatEncounterKey: null,  // selected encounter key for stat layout
+    selectedCharName: null,          // player name viewed in single view
     jobFilter: 'ALL',
-    metric: 'perf',
-    partition: 'standard',
-    timeframe: 'historical',
+    metric: 'perf',                  // 'perf' | 'rdps' | 'adps' | 'ndps' | 'cdps' | 'hps'
+    partition: 'standard',           // 'standard' | 'patch' | 'all'
+    timeframe: 'historical',         // 'historical' (H%) | 'today' (T%)
     category: '*',
     scale: 'parse',
     encounters: [],
-    members: [],
-    prByName: {},
+    members: [],                     // [{ name, world, jobName, jobRole, groupIndex }]
+    prByName: {},                    // name -> distilled record
     dataUpdatedAt: null,
     loading: false
   };
@@ -148,10 +142,6 @@
     return String(value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c];
     });
-  }
-
-  function icon(name, size) {
-    return window.PartyOverlayIcons ? window.PartyOverlayIcons.svg(name, size) : '';
   }
 
   function tierFor(pr) {
@@ -393,94 +383,87 @@
   }
 
   function renderPartyMembersPopup() {
-    var container = el.partyMembersMenu;
     if (!state.members || state.members.length === 0) {
-      container.innerHTML = '<div class="dropdown-empty">目前未加入隊伍</div>';
+      el.partyMembersList.innerHTML = '<div class="popover-empty">目前未加入隊伍</div>';
       return;
     }
 
     var html = '';
     state.members.forEach(function (m) {
       var jobAbbr = m.jobName || 'ADV';
-      html += '<div class="popover-row" data-name="' + esc(m.name) + '">' +
-        '<div class="popover-row-left">' +
+      html += '<div class="popover-item" data-name="' + esc(m.name) + '">' +
+        '<div class="popover-item-left">' +
           '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
           '<span>' + esc(m.name) + '</span>' +
         '</div>' +
         '<span class="member-world">' + esc(m.world ? '@' + m.world : '') + '</span>' +
       '</div>';
     });
-    container.innerHTML = html;
+    el.partyMembersList.innerHTML = html;
   }
 
   // ---------------------------------------------------------------- Encounter Matrix View
-  // Transposed: columns = members (compact job-icon + name-initial header), rows = encounters.
 
-  function firstChar(name) {
-    if (!name) return '';
-    var chars = Array.from(String(name).trim());
-    return chars.length ? chars[0] : '';
-  }
-
-  function renderMatrixHead(members) {
-    var row = '<tr><th class="duty-col-th">副本</th>';
-
-    members.forEach(function (member) {
-      var record = state.prByName[member.name] || {};
-      var jobAbbr = member.jobName || 'ADV';
-      var worldMismatch = record.status === 'ok' && member.world && record.servers &&
-        record.servers.length > 0 && record.servers.indexOf(member.world) === -1;
-      var warn = worldMismatch || record.status === 'error';
-
-      var titleBits = [member.name + (member.world ? '@' + member.world : '')];
-      if (record.status === 'missing') titleBits.push('無公開紀錄');
-      if (record.status === 'error') titleBits.push('讀取失敗: ' + (record.error || ''));
-      if (worldMismatch) titleBits.push('同名伺服器不同');
-
-      row += '<th class="member-col-th" title="' + esc(titleBits.join(' · ')) + '">' +
-        '<div class="member-col" data-name="' + esc(member.name) + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
-          '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
-          '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
-        '</div>' +
-      '</th>';
+  function renderHead(encounters) {
+    var groups = [];
+    encounters.forEach(function (e) {
+      var last = groups[groups.length - 1];
+      if (last && last.category === e.category) last.count++;
+      else groups.push({ category: e.category, count: 1 });
     });
 
-    row += '</tr>';
-    el.matrixHead.innerHTML = row;
+    var row1 = '<tr><th class="member-th" rowspan="2">成員</th>';
+    groups.forEach(function (g) {
+      row1 += '<th class="cat-th" colspan="' + g.count + '">' + esc(g.category) + '</th>';
+    });
+    row1 += '<th class="summary-th" rowspan="2">最佳</th></tr>';
+
+    var row2 = '<tr>';
+    encounters.forEach(function (e) {
+      row2 += '<th class="duty-th" title="' + esc(e.name) + '">' + esc(e.short) + '</th>';
+    });
+    row2 += '</tr>';
+
+    el.matrixHead.innerHTML = row1 + row2;
   }
 
-  function renderMatrixBody(encounters, members) {
-    var colCount = members.length + 1;
-
-    if (encounters.length === 0) {
-      el.matrixBody.innerHTML = '<tr><td class="dropdown-empty" colspan="' + colCount + '">此分類無副本</td></tr>';
-      return;
-    }
-
+  function renderBody(encounters) {
     var html = '';
-    var lastCategory = null;
-    var bestByMember = {};
+    var members = filteredMembers();
 
-    encounters.forEach(function (enc) {
-      if (enc.category !== lastCategory) {
-        lastCategory = enc.category;
-        html += '<tr class="cat-row"><td colspan="' + colCount + '">' + esc(enc.category) + '</td></tr>';
-      }
+    members.forEach(function (member) {
+      var record = state.prByName[member.name] || { status: 'pending', encounters: {} };
+      var jobAbbr = member.jobName || 'ADV';
 
-      html += '<tr><td class="duty-td" title="' + esc(enc.name) + '">' + esc(enc.short) + '</td>';
+      var worldMismatch = record.status === 'ok' && member.world && record.servers &&
+        record.servers.length > 0 && record.servers.indexOf(member.world) === -1;
 
-      members.forEach(function (member) {
-        var record = state.prByName[member.name] || { status: 'pending', encounters: {} };
+      html += '<tr>';
+      html += '<td class="member-td">' +
+        '<div class="member" data-name="' + esc(member.name) + '" data-role="' + esc(member.jobRole || 'DPS') + '" title="點擊查看此玩家詳細戰績">' +
+          '<span class="job-badge">' + esc(jobAbbr) + '</span>' +
+          '<span><span class="member-name">' + esc(member.name) + '</span>' +
+          (member.world ? ' <span class="member-world">@' + esc(member.world) + '</span>' : '') +
+          (worldMismatch ? ' <span class="member-warn" title="同名伺服器不同">⚠</span>' : '') +
+          (record.status === 'missing' ? ' <span class="member-note">無公開紀錄</span>' : '') +
+          (record.status === 'error' ? ' <span class="member-warn" title="' + esc(record.error || '') + '">讀取失敗</span>' : '') +
+          (record.status === 'pending' ? ' <span class="member-note">載入中…</span>' : '') +
+        '</span>' +
+        '</div></td>';
+
+      var best = null;
+      var cleared = 0;
+
+      encounters.forEach(function (enc) {
         var cell = record.encounters ? record.encounters[enc.key] : null;
 
         if (!cell) {
-          html += '<td class="cell is-empty" title="' + esc(member.name) + ' - ' + esc(enc.name) + '：無紀錄">–</td>';
+          html += '<td class="cell is-empty" title="' + esc(enc.name) + '：無紀錄">–</td>';
           return;
         }
 
-        if (bestByMember[member.name] === undefined || cell.pr > bestByMember[member.name]) {
-          bestByMember[member.name] = cell.pr;
-        }
+        cleared++;
+        if (!best || cell.pr > best.pr) best = cell;
 
         var shown = Math.floor(cell.pr);
         var tier = tierFor(shown);
@@ -506,15 +489,11 @@
           '</td>';
       });
 
+      html += '<td class="summary-td">' +
+        (best ? '<b>' + Math.floor(best.pr) + '</b> <span>/ ' + cleared + ' 本</span>' : '<span>—</span>') +
+        '</td>';
       html += '</tr>';
     });
-
-    html += '<tr class="summary-row"><td class="duty-td summary-label">最佳</td>';
-    members.forEach(function (member) {
-      var best = bestByMember[member.name];
-      html += '<td class="cell is-summary">' + (best !== undefined ? '<b>' + Math.floor(best) + '</b>' : '<span>—</span>') + '</td>';
-    });
-    html += '</tr>';
 
     el.matrixBody.innerHTML = html;
   }
@@ -524,7 +503,7 @@
   function renderStatLayout() {
     var encounters = visibleEncounters();
     if (encounters.length === 0) {
-      el.statMatrixBody.innerHTML = '<tr><td colspan="7" class="dropdown-empty">此分類無副本</td></tr>';
+      el.statMatrixBody.innerHTML = '<tr><td colspan="7" class="popover-empty">此分類無副本</td></tr>';
       return;
     }
 
@@ -532,6 +511,7 @@
       state.selectedStatEncounterKey = encounters[0].key;
     }
 
+    // Populate Custom Stat Encounter Dropdown Options
     var menuHtml = '';
     var selectedName = '副本選擇';
     encounters.forEach(function (e) {
@@ -542,8 +522,9 @@
       '</div>';
     });
     el.statEncounterMenu.innerHTML = menuHtml;
-    el.statEncounterLabel.textContent = selectedName;
+    el.statEncounterBtn.textContent = '⚔️ ' + esc(selectedName) + ' ▼';
 
+    // Update Header Metric Label
     var metricLabels = { perf: '最高 Percentile', rdps: '最高 rDPS', adps: '最高 aDPS', ndps: '最高 nDPS', cdps: '最高 cDPS', hps: '最高 HPS' };
     el.statMetricHeader.textContent = metricLabels[state.metric] || '最高 rDPS';
 
@@ -557,7 +538,7 @@
 
       html += '<tr class="member-row" data-name="' + esc(m.name) + '" style="cursor:pointer;" title="點擊查看個人詳細戰績">';
       html += '<td class="member-td"><div class="member" data-role="' + esc(m.jobRole || 'DPS') + '">' +
-        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '">' + esc(jobAbbr) + '</span>' +
+        '<span class="job-badge">' + esc(jobAbbr) + '</span>' +
         '<span class="member-name">' + esc(m.name) + '</span>' +
         (m.world ? ' <span class="member-world">@' + esc(m.world) + '</span>' : '') +
         '</div></td>';
@@ -593,7 +574,7 @@
     var charName = state.selectedCharName;
     if (!charName) {
       el.singleCharName.textContent = '未選擇玩家';
-      el.singleCharTableBody.innerHTML = '<tr><td colspan="9" class="dropdown-empty">請先選擇隊伍成員</td></tr>';
+      el.singleCharTableBody.innerHTML = '<tr><td colspan="9" class="popover-empty">請先選擇隊伍成員</td></tr>';
       return;
     }
 
@@ -667,22 +648,6 @@
     el.singleCharTableBody.innerHTML = html;
   }
 
-  // ---------------------------------------------------------------- collapse / expand
-
-  function applyCollapse() {
-    el.root.classList.toggle('is-collapsed', state.collapsed);
-    el.collapseBtn.innerHTML = icon(state.collapsed ? 'maximize2' : 'minimize2', 15);
-    var label = state.collapsed ? '展開' : '縮小';
-    el.collapseBtn.title = label;
-    el.collapseBtn.setAttribute('aria-label', label);
-  }
-
-  function setCollapsed(value) {
-    state.collapsed = value;
-    try { localStorage.setItem(CACHE_PREFIX + 'collapsed', value ? '1' : '0'); } catch (e) { /* ignore */ }
-    applyCollapse();
-  }
-
   // ---------------------------------------------------------------- main render dispatch
 
   function renderHeaderControls() {
@@ -741,9 +706,8 @@
       el.statLayoutScroll.style.display = 'none';
       el.singleViewScroll.style.display = 'none';
       var encounters = visibleEncounters();
-      var members = filteredMembers();
-      renderMatrixHead(members);
-      renderMatrixBody(encounters, members);
+      renderHead(encounters);
+      renderBody(encounters);
     }
 
     renderMeta();
@@ -819,12 +783,6 @@
 
   // ---------------------------------------------------------------- custom dropdown & event listeners
 
-  function closeAllMenus() {
-    document.querySelectorAll('.custom-dropdown.is-open').forEach(function (d) {
-      d.classList.remove('is-open');
-    });
-  }
-
   function setupCustomDropdown(btnEl, menuEl, onSelect) {
     if (!btnEl || !menuEl) return;
     var dropdown = btnEl.closest('.custom-dropdown');
@@ -832,7 +790,9 @@
     btnEl.addEventListener('click', function (e) {
       e.stopPropagation();
       var isOpen = dropdown.classList.contains('is-open');
-      closeAllMenus();
+      document.querySelectorAll('.custom-dropdown.is-open, .popover-wrapper.is-open').forEach(function (d) {
+        d.classList.remove('is-open');
+      });
       if (!isOpen) dropdown.classList.add('is-open');
     });
 
@@ -851,46 +811,39 @@
     });
   }
 
-  setupCustomDropdown(el.jobDropdownBtn, el.jobDropdownMenu, function (val) {
+  // Setup Dropdowns
+  setupCustomDropdown(el.jobDropdownBtn, el.jobDropdownMenu, function (val, text) {
     state.jobFilter = val;
-    el.jobDropdownLabel.textContent = '職業: ' + (val === 'ALL' ? '全部' : val);
+    el.jobDropdownBtn.textContent = '🛡️ 職業: ' + (val === 'ALL' ? '全部' : val) + ' ▼';
     render();
   });
 
-  setupCustomDropdown(el.metricDropdownBtn, el.metricDropdownMenu, function (val) {
+  setupCustomDropdown(el.metricDropdownBtn, el.metricDropdownMenu, function (val, text) {
     state.metric = val;
     var shortLabel = val === 'perf' ? 'Perf %' : val.toUpperCase();
-    el.metricDropdownLabel.textContent = '指標: ' + shortLabel;
+    el.metricDropdownBtn.textContent = '📈 指標: ' + shortLabel + ' ▼';
     render();
   });
 
   setupCustomDropdown(el.partitionDropdownBtn, el.partitionDropdownMenu, function (val, text) {
     state.partition = val;
-    el.partitionDropdownLabel.textContent = text;
+    el.partitionDropdownBtn.textContent = '🌐 ' + text + ' ▼';
     loadAll(false);
   });
 
   setupCustomDropdown(el.statEncounterBtn, el.statEncounterMenu, function (val, text) {
     state.selectedStatEncounterKey = val;
-    el.statEncounterLabel.textContent = text.split(' - ').pop();
+    el.statEncounterBtn.textContent = '⚔️ ' + text.split(' - ').pop() + ' ▼';
     renderStatLayout();
   });
 
-  setupCustomDropdown(el.partyListBtn, el.partyMembersMenu, null);
-  el.partyMembersMenu.addEventListener('click', function (e) {
-    var row = e.target.closest ? e.target.closest('.popover-row') : null;
-    if (!row) return;
-    var name = row.getAttribute('data-name');
-    if (name) {
-      state.selectedCharName = name;
-      state.viewMode = 'single';
-      closeAllMenus();
-      render();
-    }
-  });
-
+  // Global click listener to close popovers/dropdowns when clicking outside
   document.addEventListener('click', function (e) {
-    if (!e.target.closest('.custom-dropdown')) closeAllMenus();
+    if (!e.target.closest('.custom-dropdown') && !e.target.closest('.popover-wrapper')) {
+      document.querySelectorAll('.custom-dropdown.is-open, .popover-wrapper.is-open').forEach(function (d) {
+        d.classList.remove('is-open');
+      });
+    }
   });
 
   // View Mode Switcher
@@ -906,6 +859,7 @@
     render();
   });
 
+  // Party Layout Switcher
   el.btnEncounterLayout.addEventListener('click', function () {
     state.partyLayout = 'encounter';
     render();
@@ -915,13 +869,40 @@
     render();
   });
 
+  // Back from Single View
   el.btnBackToParty.addEventListener('click', function () {
     state.viewMode = 'party';
     render();
   });
 
+  // Party Members Popover Trigger
+  el.partyListBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var parent = el.partyListBtn.closest('.popover-wrapper');
+    var isOpen = parent.classList.contains('is-open');
+    document.querySelectorAll('.custom-dropdown.is-open, .popover-wrapper.is-open').forEach(function (d) {
+      d.classList.remove('is-open');
+    });
+    if (!isOpen) parent.classList.add('is-open');
+  });
+
+  el.partyMembersList.addEventListener('click', function (e) {
+    var item = e.target.closest ? e.target.closest('.popover-item') : null;
+    if (!item) return;
+    var name = item.getAttribute('data-name');
+    if (name) {
+      state.selectedCharName = name;
+      state.viewMode = 'single';
+      document.querySelectorAll('.popover-wrapper.is-open').forEach(function (w) {
+        w.classList.remove('is-open');
+      });
+      render();
+    }
+  });
+
+  // Member Click in Matrix / Stat Layout -> Single View
   el.mainContent.addEventListener('click', function (e) {
-    var memberEl = e.target.closest ? (e.target.closest('.member') || e.target.closest('.member-row') || e.target.closest('.member-col')) : null;
+    var memberEl = e.target.closest ? (e.target.closest('.member') || e.target.closest('.member-row')) : null;
     if (memberEl) {
       var name = memberEl.getAttribute('data-name');
       if (name) {
@@ -959,8 +940,6 @@
 
   el.refreshBtn.addEventListener('click', function (e) { loadAll(e.ctrlKey); });
 
-  el.collapseBtn.addEventListener('click', function () { setCollapsed(!state.collapsed); });
-
   // ---------------------------------------------------------------- party feed
 
   function membersFromState(data) {
@@ -990,13 +969,8 @@
     var changed = !sameRoster(members, state.members);
     state.members = members;
 
-    if (changed) {
-      // A new/changed roster is worth surfacing even if the user collapsed the overlay earlier.
-      if (state.collapsed && members.length > 0) setCollapsed(false);
-      loadAll(false);
-    } else {
-      render();
-    }
+    if (changed) loadAll(false);
+    else render();
   }
 
   function onConnected() {
@@ -1056,15 +1030,6 @@
 
   // ---------------------------------------------------------------- boot
 
-  function injectStaticIcons() {
-    Array.prototype.forEach.call(document.querySelectorAll('[data-icon]'), function (node) {
-      var size = node.getAttribute('data-icon-size') || 14;
-      node.innerHTML = icon(node.getAttribute('data-icon'), Number(size));
-    });
-  }
-
-  injectStaticIcons();
-
   try {
     var hashScale = /(?:^|[#&])scale=(parse|ordinal)/.exec(location.hash || '');
     var savedScale = hashScale ? hashScale[1] : localStorage.getItem(CACHE_PREFIX + 'scale');
@@ -1075,11 +1040,6 @@
       });
     }
   } catch (e) { /* ignore */ }
-
-  try {
-    state.collapsed = localStorage.getItem(CACHE_PREFIX + 'collapsed') === '1';
-  } catch (e) { /* ignore */ }
-  applyCollapse();
 
   render();
   loadEncounters().then(render).catch(function () { /* fallback */ });

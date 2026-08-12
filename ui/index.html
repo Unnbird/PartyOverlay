@@ -4,41 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PartyOverlay - FFXIV 跨服隊伍監控</title>
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Styles -->
+  <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/partyoverlay.css">
 </head>
 <body>
-  <div id="app" class="overlay-container">
-    <!-- Header / Status Bar -->
-    <header class="party-header">
-      <div class="header-left">
-        <div class="status-indicator" id="statusIndicator"></div>
-        <h1 class="party-title" id="partyTitle">跨服隊伍 (Cross-Realm Party)</h1>
-      </div>
-      <div class="header-right">
-        <span class="party-badge cross-realm" id="partyBadge">跨服 8 人</span>
-        <button id="toggleMockBtn" class="mock-btn" title="切換測試 / 真實數據">Mock Mode</button>
-      </div>
-    </header>
+  <div id="app" class="overlay-root">
 
-    <!-- Party Members Container -->
-    <main class="party-grid" id="partyGrid">
-      <!-- Member Cards will be rendered dynamically here -->
-    </main>
+    <div class="title-bar">
+      <div class="title-bar-left">
+        <span class="status-dot" id="statusIndicator" title="OverlayPlugin 連線狀態"></span>
+        <h1 class="title" id="partyTitle">隊伍成員 (Party Members)</h1>
+      </div>
+      <div class="title-bar-right">
+        <span class="badge" id="partyBadge">未組隊</span>
+        <button class="icon-btn" id="collapseBtn" title="縮小" aria-label="縮小"></button>
+      </div>
+    </div>
 
-    <!-- Empty State / Waiting -->
-    <div class="empty-state hidden" id="emptyState">
-      <div class="empty-icon">👥</div>
+    <main class="party-grid scroll-thin" id="partyGrid"></main>
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon" data-icon="users" data-icon-size="26"></div>
       <div class="empty-text" id="emptyText">等待 OverlayPlugin 連線...</div>
-      <div class="empty-subtext" id="emptyDiagnostic">等待組隊邀請或搜尋隊伍中...</div>
+      <div class="empty-sub" id="emptyDiagnostic">等待組隊邀請或搜尋隊伍中...</div>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <script src="js/icons.js"></script>
   <script src="js/common.js"></script>
   <script src="js/partyoverlay.js"></script>
 </body>

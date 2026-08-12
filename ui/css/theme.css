@@ -1,0 +1,360 @@
+/* ==========================================================================
+   PartyOverlay shared design tokens
+   Palette / radius / shadow lifted directly from FF14MarketOverlay so every
+   overlay page in this plugin reads as one family.
+   ========================================================================== */
+
+:root {
+  --fo-border: rgb(91 170 188 / 55%);
+  --fo-border-strong: rgb(91 170 188 / 72%);
+  --fo-border-soft: rgb(91 170 188 / 28%);
+  --fo-border-faint: rgb(91 170 188 / 16%);
+
+  --fo-bg: rgb(9 15 20 / 86%);
+  --fo-bg-header: rgb(9 15 20 / 82%);
+  --fo-bg-panel: rgb(13 24 30 / 78%);
+  --fo-bg-deep: rgb(8 16 21 / 72%);
+  --fo-bg-input: rgb(15 25 31 / 94%);
+  --fo-bg-button: rgb(18 32 39 / 96%);
+  --fo-bg-row-hover: rgb(41 77 70 / 34%);
+
+  --fo-shadow: 0 0 22px rgb(25 96 118 / 42%);
+
+  --fo-text: #edf5ff;
+  --fo-text-dim: #c6d6dd;
+  --fo-text-muted: #94abb5;
+  --fo-text-faint: #9fb3bd;
+
+  --fo-accent-gold: #ffe08a;
+  --fo-accent-green: #79e39d;
+  --fo-accent-green-strong: #4ec484;
+
+  --fo-connected: #95f0b9;
+  --fo-connected-border: rgb(78 196 132 / 55%);
+  --fo-waiting: #f3c67d;
+  --fo-waiting-border: rgb(221 167 83 / 46%);
+  --fo-error: #ffbbb3;
+  --fo-error-border: rgb(225 107 99 / 46%);
+
+  --fo-radius: 6px;
+  --fo-radius-sm: 5px;
+  --fo-font: Meiryo, "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Role accents - muted to sit inside the teal/steel palette instead of neon glow */
+  --role-tank: #6fa4e0;
+  --role-healer: #6fd0a0;
+  --role-dps: #e2837f;
+
+  /* FFLogs standard percentile scale - kept as-is, this is the domain convention */
+  --tier-0: #666666;
+  --tier-1: #1eff00;
+  --tier-2: #0070ff;
+  --tier-3: #a335ee;
+  --tier-4: #ff8000;
+  --tier-5: #e268a8;
+  --tier-6: #e5cc80;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; background: transparent; overflow: hidden; }
+
+body {
+  font-family: var(--fo-font);
+  color: var(--fo-text);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Scrollbars: thin and only visible while scrolling, matches FF14MarketOverlay tables */
+.scroll-thin { scrollbar-width: thin; }
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--fo-border-soft); border-radius: 4px; }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background: var(--fo-border); }
+
+.icon { display: block; flex-shrink: 0; }
+.spin { animation: fo-spin 0.9s linear infinite; }
+@keyframes fo-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Title bar (always visible - collapses to a small pill) -------- */
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px 8px;
+  border-bottom: 1px solid var(--fo-border-soft);
+  background: var(--fo-bg-header);
+}
+
+.title-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  color: var(--fo-text);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--fo-text-muted);
+  box-shadow: 0 0 6px currentColor;
+}
+.status-dot.is-online { background: var(--fo-connected); color: var(--fo-connected); box-shadow: 0 0 8px var(--fo-connected); }
+.status-dot.is-preview { background: var(--fo-waiting); color: var(--fo-waiting); box-shadow: 0 0 8px var(--fo-waiting); }
+
+.badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fo-text-muted);
+  background: rgb(255 255 255 / 6%);
+  padding: 2px 7px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.title-bar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* ---------- Buttons -------------------------------------------------------- */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm);
+  color: var(--fo-text-dim);
+  background: var(--fo-bg-button);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.icon-btn:hover { color: var(--fo-text); background: rgb(30 48 56 / 96%); }
+.icon-btn:disabled { cursor: default; opacity: 0.4; }
+.icon-btn.is-busy .icon { animation: fo-spin 0.9s linear infinite; }
+.icon-btn.is-active {
+  border-color: rgb(241 210 138 / 64%);
+  color: var(--fo-accent-gold);
+  background: rgb(39 35 23 / 88%);
+}
+
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgb(120 141 150 / 42%);
+  border-radius: var(--fo-radius-sm);
+  color: var(--fo-text-dim);
+  background: rgb(19 29 36 / 82%);
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.connection.is-connected { border-color: var(--fo-connected-border); color: var(--fo-connected); }
+.connection.is-preview { border-color: var(--fo-waiting-border); color: var(--fo-waiting); }
+
+/* ---------- Chips (segmented toggle groups) -------------------------------- */
+
+.chip-group {
+  display: flex;
+  gap: 2px;
+  background: rgb(0 0 0 / 25%);
+  border: 1px solid var(--fo-border-faint);
+  border-radius: var(--fo-radius-sm);
+  padding: 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 4px 9px;
+  min-height: 24px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--fo-text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.chip:hover { background: rgb(255 255 255 / 8%); color: var(--fo-text); }
+.chip.is-active {
+  background: rgb(241 210 138 / 16%);
+  color: var(--fo-accent-gold);
+  font-weight: 700;
+}
+
+/* ---------- Custom dropdowns (overlay-safe: absolute div menu, no native <select>) */
+
+.custom-dropdown { position: relative; display: inline-block; }
+
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm);
+  color: var(--fo-text-dim);
+  background: var(--fo-bg-button);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dropdown-trigger:hover { color: var(--fo-text); background: rgb(30 48 56 / 96%); }
+.custom-dropdown.is-open .dropdown-trigger { border-color: var(--fo-border-strong); color: var(--fo-text); }
+.dropdown-trigger .icon-chevron { transition: transform 0.15s ease; opacity: 0.7; }
+.custom-dropdown.is-open .dropdown-trigger .icon-chevron { transform: rotate(180deg); }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 300;
+  min-width: 160px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: none;
+  flex-direction: column;
+  padding: 4px 0;
+  background: #0b1318;
+  border: 1px solid var(--fo-border-strong);
+  border-radius: var(--fo-radius);
+  box-shadow: 0 10px 25px rgb(0 0 0 / 70%);
+}
+.custom-dropdown.is-open .dropdown-menu { display: flex; }
+.dropdown-menu.align-right { left: auto; right: 0; }
+
+.dropdown-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 10px 2px;
+  color: var(--fo-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-option {
+  font-size: 12px;
+  padding: 6px 12px;
+  color: var(--fo-text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dropdown-option:hover { background: rgb(91 170 188 / 16%); color: var(--fo-text); }
+.dropdown-option.is-selected { background: rgb(91 170 188 / 24%); color: var(--fo-accent-gold); font-weight: 700; }
+
+.dropdown-empty { padding: 12px; font-size: 11px; color: var(--fo-text-muted); text-align: center; }
+
+/* ---------- Row-style popover list (party members) ------------------------ */
+
+.popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--fo-text);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.popover-row:hover { background: rgb(91 170 188 / 16%); }
+.popover-row-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* ---------- Job / role badge ------------------------------------------------ */
+
+.job-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 3px 4px;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 45%);
+  border: 1px solid var(--fo-border-faint);
+  color: var(--fo-text-dim);
+  flex-shrink: 0;
+}
+.job-badge[data-role="Tank"] { border-color: var(--role-tank); color: var(--role-tank); }
+.job-badge[data-role="Healer"] { border-color: var(--role-healer); color: var(--role-healer); }
+.job-badge[data-role="DPS"] { border-color: var(--role-dps); color: var(--role-dps); }
+
+/* ---------- Notices --------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--fo-waiting-border);
+  border-radius: var(--fo-radius-sm);
+  color: #f2d49a;
+  background: rgb(54 40 19 / 72%);
+  font-size: 12px;
+}
+.notice.is-error { border-color: var(--fo-error-border); color: var(--fo-error); background: rgb(59 25 25 / 72%); }
+
+/* ---------- Tooltip ---------------------------------------------------------- */
+
+.tooltip {
+  position: fixed;
+  z-index: 500;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: var(--fo-radius);
+  background: #090d16;
+  border: 1px solid var(--fo-border-strong);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 80%);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fo-text-dim);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.tooltip.is-visible { opacity: 1; }
+.tooltip .tt-title { color: var(--fo-accent-gold); font-weight: 800; font-size: 13px; margin-bottom: 6px; border-bottom: 1px solid var(--fo-border-faint); padding-bottom: 4px; }
+.tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
+.tooltip .tt-row span:last-child { color: var(--fo-text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.tooltip .tt-foot { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--fo-border-faint); color: var(--fo-text-muted); font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip { transition: none; }
+  .spin { animation: none; }
+}
