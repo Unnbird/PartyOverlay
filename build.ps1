@@ -44,7 +44,8 @@ try {
         if (-not $OverlayPluginRef) {
             if ($env:OVERLAYPLUGIN_REF) {
                 $OverlayPluginRef = $env:OVERLAYPLUGIN_REF
-            } else {
+            }
+            else {
                 echo "==> Resolving latest OverlayPlugin release..."
                 $OverlayPluginRef = (Invoke-RestMethod -Uri $OVERLAYPLUGIN_API -Headers @{ "User-Agent" = "PartyOverlay-build" }).tag_name
                 if (-not $OverlayPluginRef) { throw "Failed to resolve latest OverlayPlugin release" }
@@ -53,7 +54,8 @@ try {
         echo "==> Cloning OverlayPlugin $OverlayPluginRef..."
         git clone --depth 1 --branch $OverlayPluginRef $OVERLAYPLUGIN_URL $opDir
         if ($LASTEXITCODE -ne 0) { throw "Failed to clone OverlayPlugin" }
-    } else {
+    }
+    else {
         echo "==> Using existing OverlayPlugin checkout"
     }
 
@@ -73,7 +75,8 @@ try {
                 echo "==> Stripping FFXIVClientStructs..."
                 & .\tools\strip-clientstructs.ps1
             }
-        } finally {
+        }
+        finally {
             Pop-Location
         }
     }
@@ -121,9 +124,10 @@ try {
     $suffix = if ($Configuration -eq "Release") { "" } else { "-$Configuration" }
     $archive = Join-Path $workspace "out\PartyOverlay-$version$suffix.zip"
     if (Test-Path $archive) { Remove-Item $archive -Force }
-    Compress-Archive -Path $pkg -DestinationPath $archive -Force
+    Compress-Archive -Path "$pkg\*" -DestinationPath $archive -Force
 
     echo "==> Done: $archive"
-} finally {
+}
+finally {
     Pop-Location
 }
