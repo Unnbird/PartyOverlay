@@ -21,6 +21,7 @@
     'https://raw.githubusercontent.com/Kantai235/Final-Fantasy-XIV-Ranking-for-TC-Users/refs/heads/main/',
     'https://cdn.jsdelivr.net/gh/Kantai235/Final-Fantasy-XIV-Ranking-for-TC-Users@main/'
   ];
+  var USERS_INDEX_PATH = 'data/users/index.json';
 
   var CACHE_PREFIX = 'partyoverlay.pr.';
   var ENCOUNTER_TTL_MS = 24 * 60 * 60 * 1000;
@@ -135,6 +136,7 @@
     encounters: [],
     members: [],
     prByName: {},
+    usersIndexMap: null,
     dataUpdatedAt: null,
     loading: false
   };
@@ -146,6 +148,13 @@
     return String(value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c];
     });
+  }
+
+  // Same character name can exist on multiple worlds (e.g. cross-realm parties) with
+  // separate ranking files - name alone isn't a unique identity, name+world is.
+  function memberKey(m) {
+    if (!m) return '';
+    return m.world ? m.name + '@' + m.world : (m.name || '');
   }
 
   function icon(name, size) {
@@ -227,13 +236,69 @@
     });
   }
 
-  function fetchUserFile(name) {
-    var path = 'data/users/' + encodeURIComponent(name) + '.json';
-
+  function fetchUserFile(path) {
     return fetchJson(USER_BASES[0] + path).catch(function (err) {
       if (err && err.status === 404) throw err;
       return fetchJson(USER_BASES[1] + path);
     });
+  }
+
+  // The index maps character_name -> every world that name is known on and the exact
+  // ranking file for each, since two different characters can share a name across worlds
+  // (e.g. Bird@利維坦 -> data/users/Bird-2.json, Bird@伊弗利特 -> data/users/Bird.json).
+  // Fetching straight off the name (the old behaviour) silently picks whichever one the
+  // site happened to generate without a numeric suffix.
+  function buildUsersIndexMap(users) {
+    var map = {};
+    (users || []).forEach(function (u) {
+      if (!u || !u.character_name || !u.file_path) return;
+      var servers = (u.servers && u.servers.length) ? u.servers : (u.canonical_server ? [u.canonical_server] : []);
+      if (!map[u.character_name]) map[u.character_name] = [];
+      map[u.character_name].push({ servers: servers, file: u.file_path });
+    });
+    return map;
+  }
+
+  function loadUsersIndex() {
+    if (state.usersIndexMap) return Promise.resolve(state.usersIndexMap);
+
+    var cached = cacheGet('usersIndex', ENCOUNTER_TTL_MS);
+    if (cached) {
+      state.usersIndexMap = cached;
+      return Promise.resolve(cached);
+    }
+
+    return fetchJson(USER_BASES[0] + USERS_INDEX_PATH).catch(function (err) {
+      if (err && err.status === 404) throw err;
+      return fetchJson(USER_BASES[1] + USERS_INDEX_PATH);
+    }).then(function (file) {
+      var map = buildUsersIndexMap(file.users);
+      state.usersIndexMap = map;
+      cacheSet('usersIndex', map);
+      return map;
+    });
+  }
+
+  // Resolves the exact data/users/<file>.json to fetch for a given name+world.
+  //   { path } - resolved, fetch it
+  //   { missing: true } - index loaded, this name has no public record at all
+  //   { ambiguous: true, servers } - multiple same-named characters and no world to pick with
+  function resolveUserFilePath(name, world) {
+    if (!state.usersIndexMap) {
+      // Index unavailable (offline/load failed) - fall back to the old best-guess path.
+      return { path: 'data/users/' + encodeURIComponent(name) + '.json' };
+    }
+
+    var entries = state.usersIndexMap[name];
+    if (!entries || !entries.length) return { missing: true };
+    if (entries.length === 1) return { path: entries[0].file };
+
+    if (world) {
+      var match = entries.filter(function (e) { return e.servers.indexOf(world) !== -1; })[0];
+      if (match) return { path: match.file };
+    }
+
+    return { ambiguous: true, servers: entries.map(function (e) { return e.servers.join('/'); }) };
   }
 
   function loadEncounters() {
@@ -300,21 +365,40 @@
     return out;
   }
 
-  function loadMember(name) {
-    var cached = cacheGet('user.' + name, USER_TTL_MS);
+  function loadMember(member) {
+    var key = memberKey(member);
+    var cached = cacheGet('user.' + key, USER_TTL_MS);
     if (cached) {
-      state.prByName[name] = cached;
+      state.prByName[key] = cached;
       return Promise.resolve();
     }
 
-    return fetchUserFile(name).then(function (file) {
+    var resolved = resolveUserFilePath(member.name, member.world);
+
+    if (resolved.missing) {
+      var missingRecord = { status: 'missing', encounters: {} };
+      state.prByName[key] = missingRecord;
+      cacheSet('user.' + key, missingRecord);
+      return Promise.resolve();
+    }
+
+    if (resolved.ambiguous) {
+      state.prByName[key] = {
+        status: 'error',
+        encounters: {},
+        error: '同名角色分布於多個伺服器（' + resolved.servers.join('、') + '），缺少伺服器資訊無法判斷唯一對象'
+      };
+      return Promise.resolve();
+    }
+
+    return fetchUserFile(resolved.path).then(function (file) {
       var distilled = distil(file);
-      state.prByName[name] = distilled;
-      cacheSet('user.' + name, distilled);
+      state.prByName[key] = distilled;
+      cacheSet('user.' + key, distilled);
     }).catch(function (err) {
       var record = { status: err && err.status === 404 ? 'missing' : 'error', encounters: {}, error: err && err.message };
-      state.prByName[name] = record;
-      if (record.status === 'missing') cacheSet('user.' + name, record);
+      state.prByName[key] = record;
+      if (record.status === 'missing') cacheSet('user.' + key, record);
     });
   }
 
@@ -329,9 +413,21 @@
     loadEncounters()
       .catch(function (err) { state.encountersError = err && err.message; })
       .then(function () {
-        var names = state.members.map(function (m) { return m.name; }).filter(Boolean);
-        var unique = names.filter(function (n, i) { return names.indexOf(n) === i; });
-        return Promise.all(unique.map(loadMember));
+        return loadUsersIndex().catch(function (err) {
+          state.usersIndexError = err && err.message;
+          return null;
+        });
+      })
+      .then(function () {
+        var seen = {};
+        var members = state.members.filter(function (m) {
+          if (!m.name) return false;
+          var key = memberKey(m);
+          if (seen[key]) return false;
+          seen[key] = true;
+          return true;
+        });
+        return Promise.all(members.map(loadMember));
       })
       .then(function () {
         state.loading = false;
@@ -394,7 +490,7 @@
     state.members.forEach(function (m) {
       var jobAbbr = m.jobName || 'ADV';
       var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
-      html += '<div class="popover-row" data-name="' + esc(m.name) + '">' +
+      html += '<div class="popover-row" data-name="' + esc(m.name) + '" data-world="' + esc(m.world || '') + '">' +
         '<div class="popover-row-left">' +
         '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span>' + esc(m.name) + '</span>' +
@@ -418,7 +514,7 @@
     var row = '<tr><th class="duty-col-th">副本</th>';
 
     members.forEach(function (member) {
-      var record = state.prByName[member.name] || {};
+      var record = state.prByName[memberKey(member)] || {};
       var jobAbbr = member.jobName || 'ADV';
       var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
       var worldMismatch = record.status === 'ok' && member.world && record.servers &&
@@ -431,7 +527,7 @@
       if (worldMismatch) titleBits.push('同名伺服器不同');
 
       row += '<th class="member-col-th" title="' + esc(titleBits.join(' · ')) + '">' +
-        '<div class="member-col" data-name="' + esc(member.name) + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
+        '<div class="member-col" data-name="' + esc(member.name) + '" data-world="' + esc(member.world || '') + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
         '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
         '</div>' +
@@ -468,7 +564,8 @@
       html += '<tr><td class="duty-td" title="' + esc(enc.name) + '">' + esc(enc.short) + '</td>';
 
       members.forEach(function (member) {
-        var record = state.prByName[member.name] || { status: 'pending', encounters: {} };
+        var key = memberKey(member);
+        var record = state.prByName[key] || { status: 'pending', encounters: {} };
         var cell = record.encounters ? record.encounters[enc.key] : null;
 
         if (!cell) {
@@ -478,8 +575,8 @@
 
         var val = isMetricMode ? (cell[state.metric] || cell.rdps || 0) : cell.pr;
 
-        if (bestByMember[member.name] === undefined || val > bestByMember[member.name].val) {
-          bestByMember[member.name] = { val: val, pr: cell.pr };
+        if (bestByMember[key] === undefined || val > bestByMember[key].val) {
+          bestByMember[key] = { val: val, pr: cell.pr };
         }
 
         var shownPr = Math.floor(cell.pr);
@@ -513,7 +610,7 @@
 
     html += '<tr class="summary-row"><td class="duty-td summary-label">最佳</td>';
     members.forEach(function (member) {
-      var bestObj = bestByMember[member.name];
+      var bestObj = bestByMember[memberKey(member)];
       if (bestObj !== undefined) {
         var summaryStr = isMetricMode ? formatNumber(Math.round(bestObj.val), 0) : Math.floor(bestObj.pr);
         html += '<td class="cell is-summary"><b>' + summaryStr + '</b></td>';
@@ -558,12 +655,12 @@
     var html = '';
 
     members.forEach(function (m) {
-      var record = state.prByName[m.name] || { status: 'pending', encounters: {} };
+      var record = state.prByName[memberKey(m)] || { status: 'pending', encounters: {} };
       var cell = record.encounters ? record.encounters[state.selectedStatEncounterKey] : null;
       var jobAbbr = m.jobName || 'ADV';
       var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
 
-      html += '<tr class="member-row" data-name="' + esc(m.name) + '" style="cursor:pointer;" title="點擊查看個人詳細戰績">';
+      html += '<tr class="member-row" data-name="' + esc(m.name) + '" data-world="' + esc(m.world || '') + '" style="cursor:pointer;" title="點擊查看個人詳細戰績">';
       html += '<td class="member-td"><div class="member" data-role="' + esc(m.jobRole || 'DPS') + '">' +
         '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
         '<span class="member-name">' + esc(m.name) + '</span>' +
@@ -595,20 +692,20 @@
 
   function renderSingleView() {
     if (!state.selectedCharName && state.members.length > 0) {
-      state.selectedCharName = state.members[0].name;
+      state.selectedCharName = memberKey(state.members[0]);
     }
 
-    var charName = state.selectedCharName;
-    if (!charName) {
+    var charKey = state.selectedCharName;
+    if (!charKey) {
       el.singleCharName.textContent = '未選擇玩家';
       el.singleCharTableBody.innerHTML = '<tr><td colspan="9" class="dropdown-empty">請先選擇隊伍成員</td></tr>';
       return;
     }
 
-    var memberObj = state.members.filter(function (m) { return m.name === charName; })[0];
-    var record = state.prByName[charName] || { status: 'pending', encounters: {} };
+    var memberObj = state.members.filter(function (m) { return memberKey(m) === charKey; })[0];
+    var record = state.prByName[charKey] || { status: 'pending', encounters: {} };
 
-    el.singleCharName.textContent = charName;
+    el.singleCharName.textContent = memberObj ? memberObj.name : charKey;
     el.singleCharWorld.textContent = memberObj && memberObj.world ? '@' + memberObj.world : '';
 
     var charJob = memberObj ? (memberObj.jobName || 'ADV') : 'ADV';
@@ -895,8 +992,9 @@
     var row = e.target.closest ? e.target.closest('.popover-row') : null;
     if (!row) return;
     var name = row.getAttribute('data-name');
+    var world = row.getAttribute('data-world') || '';
     if (name) {
-      state.selectedCharName = name;
+      state.selectedCharName = world ? name + '@' + world : name;
       state.viewMode = 'single';
       closeAllMenus();
       render();
@@ -915,7 +1013,7 @@
   el.btnSingleView.addEventListener('click', function () {
     state.viewMode = 'single';
     if (!state.selectedCharName && state.members.length > 0) {
-      state.selectedCharName = state.members[0].name;
+      state.selectedCharName = memberKey(state.members[0]);
     }
     render();
   });
@@ -935,11 +1033,12 @@
   });
 
   el.mainContent.addEventListener('click', function (e) {
-    var memberEl = e.target.closest ? (e.target.closest('.member') || e.target.closest('.member-row') || e.target.closest('.member-col')) : null;
+    var memberEl = e.target.closest ? (e.target.closest('.member-row') || e.target.closest('.member-col') || e.target.closest('.member')) : null;
     if (memberEl) {
       var name = memberEl.getAttribute('data-name');
+      var world = memberEl.getAttribute('data-world') || '';
       if (name) {
-        state.selectedCharName = name;
+        state.selectedCharName = world ? name + '@' + world : name;
         state.viewMode = 'single';
         render();
       }
