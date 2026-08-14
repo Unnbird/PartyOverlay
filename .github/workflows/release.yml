@@ -57,6 +57,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: PartyOverlay
+          fetch-depth: 0 # Need full history + tags to diff against the previous release
 
       - name: Resolve OverlayPlugin ref
         shell: bash
@@ -104,11 +105,32 @@ jobs:
         working-directory: PartyOverlay
         run: git tag "v${{ needs.validate_tag.outputs.version }}" && git push origin "v${{ needs.validate_tag.outputs.version }}"
 
+      # List every commit since the previous release tag - a push can contain several commits,
+      # and only showing the version bump would hide the rest. Runs after Create Tag, so the
+      # new tag is the newest one locally and the previous release is the second entry.
+      - name: Build Release Notes
+        id: release_notes
+        shell: bash
+        working-directory: PartyOverlay
+        run: |
+          tag="v${{ needs.validate_tag.outputs.version }}"
+          prev=$(git tag --sort=-v:refname | sed -n 2p)
+          {
+            echo "notes<<RELEASE_NOTES_EOF"
+            echo "## What's Changed"
+            git log --no-merges --pretty='- %s' "${prev:+$prev..}$tag"
+            if [ -n "$prev" ]; then
+              echo ""
+              echo "**Full Changelog**: ${{ github.server_url }}/${{ github.repository }}/compare/$prev...$tag"
+            fi
+            echo "RELEASE_NOTES_EOF"
+          } >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           name: PartyOverlay ${{ needs.validate_tag.outputs.version }}
           tag: v${{ needs.validate_tag.outputs.version }}
+          body: ${{ steps.release_notes.outputs.notes }}
           artifacts: out/PartyOverlay-${{ needs.validate_tag.outputs.version }}.zip
           artifactContentType: application/zip
-          generateReleaseNotes: true

@@ -1104,8 +1104,7 @@
     state.members = members;
 
     if (changed) {
-      // A new/changed roster is worth surfacing even if the user collapsed the overlay earlier.
-      if (state.collapsed && members.length > 0) setCollapsed(false);
+      // Collapse state is the user's choice - a roster change never forces the overlay open.
       loadAll(false);
     } else {
       render();

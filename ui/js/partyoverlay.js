@@ -63,8 +63,6 @@
       return;
     }
 
-    if (data.members.length > 0 && state.collapsed) setCollapsed(false);
-
     el.emptyState.classList.remove('is-visible');
 
     var isCross = data.isCrossRealm || data.partyType === 'CrossRealmParty';
