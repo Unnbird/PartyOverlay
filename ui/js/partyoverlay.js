@@ -31,6 +31,21 @@
     return window.PartyOverlayIcons ? window.PartyOverlayIcons.svg(name, size) : '';
   }
 
+  // Jobs and roles are always shown in Chinese; icons.js owns the label tables.
+  function jobLabel(jobKey) {
+    if (window.PartyOverlayIcons && window.PartyOverlayIcons.jobLabel) {
+      return window.PartyOverlayIcons.jobLabel(jobKey);
+    }
+    return String(jobKey || '');
+  }
+
+  function roleLabel(roleKey) {
+    if (window.PartyOverlayIcons && window.PartyOverlayIcons.roleLabel) {
+      return window.PartyOverlayIcons.roleLabel(roleKey);
+    }
+    return String(roleKey || '');
+  }
+
   function escapeHtml(str) {
     if (str === undefined || str === null) return '';
     return String(str).replace(/[&<>"']/g, function (m) {
@@ -82,11 +97,12 @@
       var worldTag = m.homeWorldName ? '@' + m.homeWorldName : '';
       var groupTag = m.groupIndex > 0 ? String.fromCharCode(65 + m.groupIndex) : '';
       var jobKey = m.jobName || 'ADV';
-      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobKey, 32) : escapeHtml(jobKey);
+      var jobZh = jobLabel(jobKey);
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobKey, 32) : escapeHtml(jobZh);
 
       return '' +
         '<div class="member-row" data-role="' + escapeHtml(role) + '">' +
-        '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(jobKey + ' (' + role + ')') + '">' + jobIconHtml + '</span>' +
+        '<span class="job-badge" data-role="' + escapeHtml(role) + '" title="' + escapeHtml(jobZh + ' (' + roleLabel(role) + ')') + '">' + jobIconHtml + '</span>' +
         '<div class="member-info">' +
         '<div class="name-row">' +
         '<span class="member-name">' +
@@ -98,7 +114,7 @@
         '<div class="detail-row">' +
         '<span class="level-text">Lv.' + (m.level || 0) + '</span>' +
         '<span>·</span>' +
-        '<span>' + escapeHtml(role) + '</span>' +
+        '<span>' + escapeHtml(jobZh) + '</span>' +
         (groupTag ? '<span>·</span><span>Group ' + groupTag + '</span>' : '') +
         (m.inCurrentZone === false ? '<span>·</span><span title="不在同一區域">區域外</span>' : '') +
         '</div>' +

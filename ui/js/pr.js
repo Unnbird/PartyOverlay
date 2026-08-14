@@ -37,13 +37,13 @@
     ultimate_futures_rewritten: '伊甸'
   };
 
-  var JOB_ABBR = {
-    Paladin: 'PLD', Warrior: 'WAR', DarkKnight: 'DRK', Gunbreaker: 'GNB',
-    WhiteMage: 'WHM', Scholar: 'SCH', Astrologian: 'AST', Sage: 'SGE',
-    Monk: 'MNK', Dragoon: 'DRG', Ninja: 'NIN', Samurai: 'SAM', Reaper: 'RPR', Viper: 'VPR',
-    Bard: 'BRD', Machinist: 'MCH', Dancer: 'DNC',
-    BlackMage: 'BLM', Summoner: 'SMN', RedMage: 'RDM', Pictomancer: 'PCT', BlueMage: 'BLU'
-  };
+  // Jobs are always shown in Chinese; icons.js owns the abbr/English -> 中文 table.
+  function jobLabel(jobKey) {
+    if (window.PartyOverlayIcons && window.PartyOverlayIcons.jobLabel) {
+      return window.PartyOverlayIcons.jobLabel(jobKey);
+    }
+    return String(jobKey || '');
+  }
 
   var TIERS = [
     { min: 100, label: '100', parse: '#e5cc80', ord: '#cde2fb', parseInk: '#0b0b0b', ordInk: '#0b0b0b', star: true },
@@ -489,10 +489,11 @@
     var html = '';
     state.members.forEach(function (m) {
       var jobAbbr = m.jobName || 'ADV';
-      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
+      var jobZh = jobLabel(jobAbbr);
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobZh);
       html += '<div class="popover-row" data-name="' + esc(m.name) + '" data-world="' + esc(m.world || '') + '">' +
         '<div class="popover-row-left">' +
-        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
+        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobZh) + '">' + jobIconHtml + '</span>' +
         '<span>' + esc(m.name) + '</span>' +
         '</div>' +
         '<span class="member-world">' + esc(m.world ? '@' + m.world : '') + '</span>' +
@@ -516,7 +517,8 @@
     members.forEach(function (member) {
       var record = state.prByName[memberKey(member)] || {};
       var jobAbbr = member.jobName || 'ADV';
-      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
+      var jobZh = jobLabel(jobAbbr);
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobZh);
       var worldMismatch = record.status === 'ok' && member.world && record.servers &&
         record.servers.length > 0 && record.servers.indexOf(member.world) === -1;
       var warn = worldMismatch || record.status === 'error';
@@ -528,7 +530,7 @@
 
       row += '<th class="member-col-th" title="' + esc(titleBits.join(' · ')) + '">' +
         '<div class="member-col" data-name="' + esc(member.name) + '" data-world="' + esc(member.world || '') + '" data-role="' + esc(member.jobRole || 'DPS') + '">' +
-        '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
+        '<span class="job-badge job-badge-compact" data-role="' + esc(member.jobRole || 'DPS') + '" title="' + esc(jobZh) + '">' + jobIconHtml + '</span>' +
         '<span class="member-initial' + (warn ? ' is-warn' : '') + '">' + esc(firstChar(member.name)) + '</span>' +
         '</div>' +
         '</th>';
@@ -658,11 +660,12 @@
       var record = state.prByName[memberKey(m)] || { status: 'pending', encounters: {} };
       var cell = record.encounters ? record.encounters[state.selectedStatEncounterKey] : null;
       var jobAbbr = m.jobName || 'ADV';
-      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobAbbr);
+      var jobZh = jobLabel(jobAbbr);
+      var jobIconHtml = window.PartyOverlayIcons ? window.PartyOverlayIcons.jobIcon(jobAbbr, 26) : esc(jobZh);
 
       html += '<tr class="member-row" data-name="' + esc(m.name) + '" data-world="' + esc(m.world || '') + '" style="cursor:pointer;" title="點擊查看個人詳細戰績">';
       html += '<td class="member-td"><div class="member" data-role="' + esc(m.jobRole || 'DPS') + '">' +
-        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobAbbr) + '">' + jobIconHtml + '</span>' +
+        '<span class="job-badge" data-role="' + esc(m.jobRole || 'DPS') + '" title="' + esc(jobZh) + '">' + jobIconHtml + '</span>' +
         '<span class="member-name">' + esc(m.name) + '</span>' +
         (m.world ? ' <span class="member-world">@' + esc(m.world) + '</span>' : '') +
         '</div></td>';
@@ -681,7 +684,7 @@
       html += '<td class="summary-td">' + (cell.kills || 1) + ' 次</td>';
       html += '<td class="summary-td">' + formatTime(cell.clearSeconds) + '</td>';
       html += '<td class="summary-td"><b>' + metricVal + '</b></td>';
-      html += '<td class="summary-td">' + esc(JOB_ABBR[cell.job] || cell.job || jobAbbr) + '</td>';
+      html += '<td class="summary-td">' + esc(jobLabel(cell.job || jobAbbr)) + '</td>';
       html += '</tr>';
     });
 
@@ -712,7 +715,7 @@
     if (window.PartyOverlayIcons) {
       el.singleCharAvatar.innerHTML = window.PartyOverlayIcons.jobIcon(charJob, 32);
     } else {
-      el.singleCharAvatar.textContent = charJob;
+      el.singleCharAvatar.textContent = jobLabel(charJob);
     }
 
     var encounters = visibleEncounters();
@@ -738,7 +741,7 @@
     Object.keys(jobCounts).forEach(function (j) {
       if (jobCounts[j] > maxCount) {
         maxCount = jobCounts[j];
-        mainJob = JOB_ABBR[j] || j;
+        mainJob = jobLabel(j);
       }
     });
     el.singleCharMainJob.textContent = mainJob;
@@ -770,7 +773,7 @@
         '<td class="summary-td">' + (cell.rank ? formatNumber(cell.rank) + ' / ' + formatNumber(cell.sampleCount) : '—') + '</td>' +
         '<td class="summary-td"><b>' + metricVal + '</b></td>' +
         '<td class="summary-td">' + formatTime(cell.clearSeconds) + '</td>' +
-        '<td class="summary-td">' + esc(JOB_ABBR[cell.job] || cell.job || '—') + '</td>' +
+        '<td class="summary-td">' + esc(cell.job ? jobLabel(cell.job) : '—') + '</td>' +
         '<td class="summary-td">' + formatDate(cell.recordedAt) + '</td>' +
         '</tr>';
     });
@@ -879,7 +882,7 @@
     if (typeof d.rank === 'number' && typeof d.sampleCount === 'number') {
       row('名次', formatNumber(d.rank) + ' / ' + formatNumber(d.sampleCount));
     }
-    if (d.job) row('職業', esc(JOB_ABBR[d.job] || d.job));
+    if (d.job) row('職業', esc(jobLabel(d.job)));
     if (typeof d.rdps === 'number') row('rDPS', formatNumber(d.rdps, 0));
     row('紀錄日期', formatDate(d.recordedAt));
     if (d.patch) row('版本', esc(d.patch));
@@ -962,9 +965,9 @@
     });
   }
 
-  setupCustomDropdown(el.jobDropdownBtn, el.jobDropdownMenu, function (val) {
+  setupCustomDropdown(el.jobDropdownBtn, el.jobDropdownMenu, function (val, text) {
     state.jobFilter = val;
-    el.jobDropdownLabel.textContent = '職業: ' + (val === 'ALL' ? '全部' : val);
+    el.jobDropdownLabel.textContent = '職業: ' + (val === 'ALL' ? '全部' : text);
     render();
   });
 

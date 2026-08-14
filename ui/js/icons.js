@@ -54,6 +54,45 @@
     BLU: 'BlueMage', BlueMage: 'BlueMage'
   };
 
+  // Traditional-Chinese job labels, keyed by the abbreviation the plugin sends
+  // (kept aligned with WorldJobData.JobMap on the C# side). Base classes and
+  // DoH/DoL are here too: a member can be on one when the party forms.
+  var JOB_ZH = {
+    ADV: '冒險者',
+    GLA: '劍術師', PGL: '格鬥家', MRD: '斧術師', LNC: '槍術師', ARC: '弓箭手',
+    CNJ: '幻術師', THM: '咒術師', ACN: '秘術師', ROG: '雙劍師',
+    CRP: '刻木匠', BSM: '鍛鐵匠', ARM: '鎧甲匠', GSM: '雕金匠', LTW: '製革匠',
+    WVR: '裁縫匠', ALC: '鍊金術士', CUL: '烹調師', MIN: '採礦工', BTN: '園藝工', FSH: '捕魚人',
+    PLD: '騎士', WAR: '戰士', DRK: '暗黑騎士', GNB: '絕槍戰士',
+    WHM: '白魔道士', SCH: '學者', AST: '占星術士', SGE: '賢者',
+    MNK: '武僧', DRG: '龍騎士', NIN: '忍者', SAM: '武士', RPR: '奪魂者', VPR: '毒蛇劍士',
+    BRD: '吟遊詩人', MCH: '機工士', DNC: '舞者',
+    BLM: '黑魔道士', SMN: '召喚師', RDM: '赤魔道士', PCT: '繪靈法師', BLU: '青魔道士'
+  };
+
+  // FFLogs reports jobs by full English name ("Paladin"), so alias those onto the
+  // same labels rather than maintaining a second table.
+  Object.keys(JOB_NAMES).forEach(function (key) {
+    var zh = JOB_ZH[key.toUpperCase()];
+    if (zh) JOB_ZH[JOB_NAMES[key]] = zh;
+  });
+
+  var ROLE_ZH = {
+    Tank: '坦克', Healer: '治療', DPS: '輸出',
+    Crafter: '工匠', Gatherer: '採集', Unknown: '未知'
+  };
+
+  function jobLabel(jobKey) {
+    var key = String(jobKey || '').trim();
+    if (!key) return JOB_ZH.ADV;
+    return JOB_ZH[key.toUpperCase()] || JOB_ZH[key] || key;
+  }
+
+  function roleLabel(roleKey) {
+    var key = String(roleKey || '').trim();
+    return ROLE_ZH[key] || key || ROLE_ZH.Unknown;
+  }
+
   var JOB_PATHS = {
     PLD: '<path d="M12 2L4 6v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V6l-8-4zm0 4l4 3h-3v7h-2V9H8l4-3z"/>',
     WAR: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/>',
@@ -114,5 +153,8 @@
     return jobSvg(upper, s);
   }
 
-  window.PartyOverlayIcons = { svg: svg, jobIcon: jobIcon, jobSvg: jobSvg };
+  window.PartyOverlayIcons = {
+    svg: svg, jobIcon: jobIcon, jobSvg: jobSvg,
+    jobLabel: jobLabel, roleLabel: roleLabel
+  };
 })();
