@@ -581,7 +581,7 @@
           bestByMember[key] = { val: val, pr: cell.pr };
         }
 
-        var shownPr = Math.floor(cell.pr);
+        var shownPr = Math.round(cell.pr);
         var tier = tierFor(shownPr);
         var displayStr = isMetricMode ? formatNumber(Math.round(val), 0) : shownPr;
 
@@ -614,7 +614,7 @@
     members.forEach(function (member) {
       var bestObj = bestByMember[memberKey(member)];
       if (bestObj !== undefined) {
-        var summaryStr = isMetricMode ? formatNumber(Math.round(bestObj.val), 0) : Math.floor(bestObj.pr);
+        var summaryStr = isMetricMode ? formatNumber(Math.round(bestObj.val), 0) : Math.round(bestObj.pr);
         html += '<td class="cell is-summary"><b>' + summaryStr + '</b></td>';
       } else {
         html += '<td class="cell is-summary"><span>—</span></td>';
@@ -675,12 +675,12 @@
         return;
       }
 
-      var shownPr = Math.floor(cell.pr);
+      var shownPr = Math.round(cell.pr);
       var tier = tierFor(shownPr);
       var metricVal = state.metric === 'perf' ? shownPr + '%' : formatNumber(cell[state.metric] || cell.rdps || 0);
 
       html += '<td class="summary-td"><span class="swatch" style="background:' + tierFill(tier) + ';color:' + tierInk(tier) + ';padding:2px 8px;border-radius:4px;">' + shownPr + '</span></td>';
-      html += '<td class="summary-td">' + Math.floor(cell.medianPr || cell.pr) + '</td>';
+      html += '<td class="summary-td">' + Math.round(cell.medianPr || cell.pr) + '</td>';
       html += '<td class="summary-td">' + (cell.kills || 1) + ' 次</td>';
       html += '<td class="summary-td">' + formatTime(cell.clearSeconds) + '</td>';
       html += '<td class="summary-td"><b>' + metricVal + '</b></td>';
@@ -761,7 +761,7 @@
         return;
       }
 
-      var shownPr = Math.floor(cell.pr);
+      var shownPr = Math.round(cell.pr);
       var tier = tierFor(shownPr);
       var metricVal = state.metric === 'perf' ? shownPr + '%' : formatNumber(cell[state.metric] || cell.rdps || 0);
 
@@ -769,7 +769,7 @@
         '<td class="single-th">' + esc(enc.category) + '</td>' +
         '<td class="single-th"><b>' + esc(enc.name) + '</b></td>' +
         '<td class="summary-td"><span class="swatch" style="background:' + tierFill(tier) + ';color:' + tierInk(tier) + ';padding:2px 8px;border-radius:4px;">' + shownPr + '</span></td>' +
-        '<td class="summary-td">' + Math.floor(cell.medianPr || cell.pr) + '</td>' +
+        '<td class="summary-td">' + Math.round(cell.medianPr || cell.pr) + '</td>' +
         '<td class="summary-td">' + (cell.rank ? formatNumber(cell.rank) + ' / ' + formatNumber(cell.sampleCount) : '—') + '</td>' +
         '<td class="summary-td"><b>' + metricVal + '</b></td>' +
         '<td class="summary-td">' + formatTime(cell.clearSeconds) + '</td>' +
